@@ -3,15 +3,19 @@ import { TileRef } from "../game/GameMap";
 import { AirbaseExecution } from "./AirbaseExecution";
 import { AttackHelicopterExecution } from "./AttackHelicopterExecution";
 import { BattleshipExecution } from "./BattleshipExecution";
+import { CarrierExecution } from "./CarrierExecution";
 import { CityExecution } from "./CityExecution";
+import { CoastalBatteryExecution } from "./CoastalBatteryExecution";
 import { CruiserExecution } from "./CruiserExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { DestroyerExecution } from "./DestroyerExecution";
 import { FactoryExecution } from "./FactoryExecution";
 import { FighterExecution } from "./FighterExecution";
+import { FuelDepotExecution } from "./FuelDepotExecution";
 import { MinelayerExecution } from "./MinelayerExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
+import { NavalYardExecution } from "./NavalYardExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
@@ -208,6 +212,20 @@ export class ConstructionExecution implements Execution {
           }),
         );
         break;
+      case UnitType.NavalYard:
+        this.mg.addExecution(new NavalYardExecution(this.structure!));
+        break;
+      case UnitType.FuelDepot:
+        this.mg.addExecution(new FuelDepotExecution(this.structure!));
+        break;
+      case UnitType.CoastalBattery:
+        this.mg.addExecution(new CoastalBatteryExecution(this.structure!));
+        break;
+      case UnitType.Carrier:
+        this.mg.addExecution(
+          new CarrierExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
       default:
         console.warn(
           `unit type ${this.constructionType} cannot be constructed`,
@@ -225,6 +243,9 @@ export class ConstructionExecution implements Execution {
       case UnitType.City:
       case UnitType.Factory:
       case UnitType.Airbase:
+      case UnitType.NavalYard:
+      case UnitType.FuelDepot:
+      case UnitType.CoastalBattery:
         return true;
       default:
         return false;

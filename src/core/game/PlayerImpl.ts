@@ -1160,11 +1160,13 @@ export class PlayerImpl implements Player {
         return this.portSpawn(targetTile, validTiles);
       case UnitType.Warship:
       case UnitType.Destroyer:
+      case UnitType.Minelayer:
+        return this.warshipSpawn(targetTile);
       case UnitType.Cruiser:
       case UnitType.Battleship:
       case UnitType.Submarine:
-      case UnitType.Minelayer:
-        return this.warshipSpawn(targetTile);
+      case UnitType.Carrier:
+        return this.advancedNavalSpawn(targetTile);
       case UnitType.Shell:
       case UnitType.SAMMissile:
         return targetTile;
@@ -1180,7 +1182,12 @@ export class PlayerImpl implements Player {
       case UnitType.City:
       case UnitType.Factory:
       case UnitType.Airbase:
+      case UnitType.FuelDepot:
         return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.NavalYard:
+        return this.navalYardSpawn(targetTile, validTiles);
+      case UnitType.CoastalBattery:
+        return this.coastalStructureSpawn(targetTile);
       case UnitType.Fighter:
       case UnitType.TacticalBomber:
       case UnitType.StrategicBomber:
@@ -1301,6 +1308,42 @@ export class PlayerImpl implements Player {
       (c) => c.isActive() && !c.isUnderConstruction(),
     );
     return best?.tile() ?? false;
+  }
+
+  // Requires a Port; then also requires an adjacent NavalYard for advanced ships.
+  advancedNavalSpawn(targetTile: TileRef): TileRef | false {
+    const spawnTile = this.warshipSpawn(targetTile);
+    if (spawnTile === false) return false;
+    // Check for a NavalYard within 50 tiles of the spawn tile
+    const yards = this.mg.nearbyUnits(spawnTile, 50, [UnitType.NavalYard]);
+    const hasYard = yards.some(
+      ({ unit }) =>
+        unit.owner() === this && unit.isActive() && !unit.isUnderConstruction(),
+    );
+    return hasYard ? spawnTile : false;
+  }
+
+  // NavalYard must be placed on land adjacent to a Port tile.
+  navalYardSpawn(
+    targetTile: TileRef,
+    validTiles: TileRef[] | null = null,
+  ): TileRef | false {
+    if (!this.mg.isLand(targetTile)) return false;
+    if (!this.mg.isShoreline(targetTile)) return false;
+    // Check that a friendly Port exists within 30 tiles
+    const ports = this.mg.nearbyUnits(targetTile, 30, [UnitType.Port]);
+    const hasPort = ports.some(
+      ({ unit }) => unit.owner() === this && unit.isActive(),
+    );
+    if (!hasPort) return false;
+    return this.landBasedStructureSpawn(targetTile, validTiles);
+  }
+
+  // CoastalBattery must be placed on a shoreline land tile.
+  coastalStructureSpawn(targetTile: TileRef): TileRef | false {
+    if (!this.mg.isLand(targetTile)) return false;
+    if (!this.mg.isShoreline(targetTile)) return false;
+    return targetTile;
   }
 
   landBasedStructureSpawn(

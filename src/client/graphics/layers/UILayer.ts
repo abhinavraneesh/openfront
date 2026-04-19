@@ -74,7 +74,8 @@ export class UILayer implements Layer {
         this.selectedUnit.type() === UnitType.Fighter ||
         this.selectedUnit.type() === UnitType.TacticalBomber ||
         this.selectedUnit.type() === UnitType.StrategicBomber ||
-        this.selectedUnit.type() === UnitType.AttackHelicopter)
+        this.selectedUnit.type() === UnitType.AttackHelicopter ||
+        this.selectedUnit.type() === UnitType.Carrier)
     ) {
       this.drawSelectionBox(this.selectedUnit);
     }
@@ -128,7 +129,8 @@ export class UILayer implements Layer {
       case UnitType.Fighter:
       case UnitType.TacticalBomber:
       case UnitType.StrategicBomber:
-      case UnitType.AttackHelicopter: {
+      case UnitType.AttackHelicopter:
+      case UnitType.Carrier: {
         this.drawHealthBar(unit);
         break;
       }
@@ -188,7 +190,8 @@ export class UILayer implements Layer {
           event.unit.type() === UnitType.Fighter ||
           event.unit.type() === UnitType.TacticalBomber ||
           event.unit.type() === UnitType.StrategicBomber ||
-          event.unit.type() === UnitType.AttackHelicopter)
+          event.unit.type() === UnitType.AttackHelicopter ||
+          event.unit.type() === UnitType.Carrier)
       ) {
         this.drawSelectionBox(event.unit);
       }

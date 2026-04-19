@@ -49,6 +49,11 @@ const fighterIcon = warshipIcon;
 const tacticalBomberIcon = warshipIcon;
 const strategicBomberIcon = warshipIcon;
 const attackHelicopterIcon = warshipIcon;
+// Phase 3 icons reuse existing assets
+const navalYardIcon = portIcon;
+const fuelDepotIcon = portIcon;
+const coastalBatteryIcon = warshipIcon;
+const carrierIcon = warshipIcon;
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -156,6 +161,34 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: attackHelicopterIcon,
       description: "build_menu.desc.attack_helicopter",
       key: "unit_type.attack_helicopter",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Carrier,
+      icon: carrierIcon,
+      description: "build_menu.desc.carrier",
+      key: "unit_type.carrier",
+      countable: true,
+    },
+    {
+      unitType: UnitType.NavalYard,
+      icon: navalYardIcon,
+      description: "build_menu.desc.naval_yard",
+      key: "unit_type.naval_yard",
+      countable: true,
+    },
+    {
+      unitType: UnitType.FuelDepot,
+      icon: fuelDepotIcon,
+      description: "build_menu.desc.fuel_depot",
+      key: "unit_type.fuel_depot",
+      countable: true,
+    },
+    {
+      unitType: UnitType.CoastalBattery,
+      icon: coastalBatteryIcon,
+      description: "build_menu.desc.coastal_battery",
+      key: "unit_type.coastal_battery",
       countable: true,
     },
     {

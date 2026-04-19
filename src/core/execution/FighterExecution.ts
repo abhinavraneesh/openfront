@@ -77,6 +77,8 @@ export class FighterExecution implements Execution {
       return;
     }
 
+    this.checkFuelDepotRefuel();
+
     if (!this.isHomeBaseAlive()) {
       this.fuel = 0;
       return;
@@ -87,7 +89,12 @@ export class FighterExecution implements Execution {
 
     switch (this.phase) {
       case "patrol":
-        this.doPatrol(moveSpeed, info.range ?? 50, info.attackRate ?? 8, info.damage ?? 200);
+        this.doPatrol(
+          moveSpeed,
+          info.range ?? 50,
+          info.attackRate ?? 8,
+          info.damage ?? 200,
+        );
         break;
       case "intercept":
         this.doIntercept(moveSpeed, info.attackRate ?? 8, info.damage ?? 200);
@@ -99,13 +106,54 @@ export class FighterExecution implements Execution {
   }
 
   private isHomeBaseAlive(): boolean {
-    const nearby = this.mg.nearbyUnits(this.homeBaseTile, 3, [UnitType.Airbase]);
-    return nearby.some(
-      ({ unit }) =>
-        unit.owner() === this.fighter.owner() &&
+    const owner = this.fighter.owner();
+    const nearAirbase = this.mg.nearbyUnits(this.homeBaseTile, 3, [
+      UnitType.Airbase,
+    ]);
+    if (
+      nearAirbase.some(
+        ({ unit }) =>
+          unit.owner() === owner &&
+          unit.isActive() &&
+          !unit.isUnderConstruction(),
+      )
+    ) {
+      return true;
+    }
+    // Also count a Carrier as a valid home base
+    return owner.units(UnitType.Carrier).some((u) => u.isActive());
+  }
+
+  private findNearestCarrier(): Unit | undefined {
+    const owner = this.fighter.owner();
+    let best: Unit | undefined;
+    let bestDist = Infinity;
+    for (const u of owner.units(UnitType.Carrier)) {
+      if (!u.isActive()) continue;
+      const d = this.mg.euclideanDistSquared(this.fighter.tile(), u.tile());
+      if (d < bestDist) {
+        best = u;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  private checkFuelDepotRefuel(): void {
+    const owner = this.fighter.owner();
+    const nearby = this.mg.nearbyUnits(this.fighter.tile(), 5, [
+      UnitType.FuelDepot,
+    ]);
+    for (const { unit } of nearby) {
+      if (
+        unit.owner() === owner &&
         unit.isActive() &&
-        !unit.isUnderConstruction(),
-    );
+        !unit.isUnderConstruction()
+      ) {
+        this.fuel = Math.min(this.fuel + 20, this.maxFuel);
+        break;
+      }
+    }
   }
 
   private distToHome(): number {
@@ -117,7 +165,12 @@ export class FighterExecution implements Execution {
     return this.fuel < Math.ceil(this.distToHome() / moveSpeed) * 2 + 8;
   }
 
-  private doPatrol(moveSpeed: number, range: number, attackRate: number, damage: number): void {
+  private doPatrol(
+    moveSpeed: number,
+    range: number,
+    attackRate: number,
+    damage: number,
+  ): void {
     if (this.shouldReturnHome(moveSpeed)) {
       this.transitionTo("returning");
       return;
@@ -135,14 +188,23 @@ export class FighterExecution implements Execution {
     }
     if (this.fighter.targetTile() !== undefined) {
       this.moveToward(this.fighter.targetTile()!, moveSpeed);
-      if (this.mg.manhattanDist(this.fighter.tile(), this.fighter.targetTile()!) === 0) {
+      if (
+        this.mg.manhattanDist(
+          this.fighter.tile(),
+          this.fighter.targetTile()!,
+        ) === 0
+      ) {
         this.fighter.setTargetTile(undefined);
         this.transitionTo("patrol");
       }
     }
   }
 
-  private doIntercept(moveSpeed: number, attackRate: number, damage: number): void {
+  private doIntercept(
+    moveSpeed: number,
+    attackRate: number,
+    damage: number,
+  ): void {
     const target = this.fighter.targetUnit();
     if (!target?.isActive()) {
       this.fighter.setTargetUnit(undefined);
@@ -171,8 +233,10 @@ export class FighterExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    this.moveToward(this.homeBaseTile, moveSpeed);
-    if (this.mg.manhattanDist(this.fighter.tile(), this.homeBaseTile) <= 1) {
+    const carrier = this.findNearestCarrier();
+    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    this.moveToward(returnTarget, moveSpeed);
+    if (this.mg.manhattanDist(this.fighter.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.fighter.modifyHealth(10);
       this.transitionTo("patrol");
@@ -202,7 +266,11 @@ export class FighterExecution implements Execution {
     const owner = this.fighter.owner();
     const nearby = this.mg.nearbyUnits(this.fighter.tile()!, range, AIR_TYPES);
     for (const { unit } of nearby) {
-      if (unit !== this.fighter && unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true)) {
+      if (
+        unit !== this.fighter &&
+        unit.owner() !== owner &&
+        owner.canAttackPlayer(unit.owner(), true)
+      ) {
         return unit;
       }
     }
@@ -213,8 +281,10 @@ export class FighterExecution implements Execution {
     const range = 60;
     const mg = this.mg;
     for (let i = 0; i < 50; i++) {
-      const x = mg.x(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
-      const y = mg.y(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
+      const x =
+        mg.x(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
+      const y =
+        mg.y(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
       if (mg.isValidCoord(x, y)) return mg.ref(x, y);
     }
     return this.homeBaseTile;

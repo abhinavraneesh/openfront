@@ -285,9 +285,9 @@ export interface UnitInfo {
   maxHealth?: number;
   damage?: number;
   attackRate?: number; // ticks between attacks
-  range?: number;      // targeting range in tiles
-  moveSpeed?: number;  // steps per tick (aircraft)
-  maxFuel?: number;    // fuel ticks before crash (undefined = unlimited)
+  range?: number; // targeting range in tiles
+  moveSpeed?: number; // steps per tick (aircraft)
+  maxFuel?: number; // fuel ticks before crash (undefined = unlimited)
   constructionDuration?: number;
   upgradable?: boolean;
 }
@@ -330,6 +330,11 @@ export enum UnitType {
   TacticalBomber = "Tactical Bomber",
   StrategicBomber = "Strategic Bomber",
   AttackHelicopter = "Attack Helicopter",
+  // Phase 3 advanced units
+  NavalYard = "Naval Yard",
+  FuelDepot = "Fuel Depot",
+  CoastalBattery = "Coastal Battery",
+  Carrier = "Carrier",
 }
 
 export enum TrainType {
@@ -359,6 +364,7 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.TacticalBomber,
   UnitType.StrategicBomber,
   UnitType.AttackHelicopter,
+  UnitType.Carrier,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -369,6 +375,9 @@ export const Structures = unitTypeGroup([
   UnitType.Port,
   UnitType.Factory,
   UnitType.Airbase,
+  UnitType.NavalYard,
+  UnitType.FuelDepot,
+  UnitType.CoastalBattery,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -482,6 +491,16 @@ export interface UnitParamsMap {
   };
 
   [UnitType.AttackHelicopter]: {
+    patrolTile: TileRef;
+  };
+
+  // Phase 3 structures
+  [UnitType.NavalYard]: Record<string, never>;
+  [UnitType.FuelDepot]: Record<string, never>;
+  [UnitType.CoastalBattery]: Record<string, never>;
+
+  // Carrier acts as floating Airbase; patrolTile stores its patrol center
+  [UnitType.Carrier]: {
     patrolTile: TileRef;
   };
 }

@@ -565,6 +565,37 @@ export class DefaultConfig implements Config {
           moveSpeed: 2,
         };
         break;
+      case UnitType.NavalYard:
+        info = {
+          cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
+          maxHealth: 1200,
+          constructionDuration: 40,
+        };
+        break;
+      case UnitType.FuelDepot:
+        info = {
+          cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
+          maxHealth: 600,
+          constructionDuration: 20,
+        };
+        break;
+      case UnitType.CoastalBattery:
+        info = {
+          cost: this.costWrapper(() => 400_000, UnitType.CoastalBattery),
+          maxHealth: 800,
+          damage: 250,
+          attackRate: 30,
+          range: 80,
+          constructionDuration: 25,
+        };
+        break;
+      case UnitType.Carrier:
+        info = {
+          cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
+          maxHealth: 3000,
+          moveSpeed: 1,
+        };
+        break;
       default:
         assertNever(type);
     }

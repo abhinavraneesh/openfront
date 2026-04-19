@@ -90,7 +90,11 @@ export class TacticalBomberExecution implements Execution {
         break;
       case "outbound":
         this.fuel--;
-        if (this.fuel <= 0) { this.bomber.delete(); return; }
+        if (this.fuel <= 0) {
+          this.bomber.delete();
+          return;
+        }
+        this.checkFuelDepotRefuel();
         this.doOutbound(moveSpeed, info.damage ?? 600);
         break;
       case "attacking":
@@ -98,7 +102,11 @@ export class TacticalBomberExecution implements Execution {
         break;
       case "returning":
         this.fuel--;
-        if (this.fuel <= 0) { this.bomber.delete(); return; }
+        if (this.fuel <= 0) {
+          this.bomber.delete();
+          return;
+        }
+        this.checkFuelDepotRefuel();
         this.doReturn(moveSpeed);
         break;
       case "idle":
@@ -112,13 +120,53 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private isHomeBaseAlive(): boolean {
-    const nearby = this.mg.nearbyUnits(this.homeBaseTile, 3, [UnitType.Airbase]);
-    return nearby.some(
-      ({ unit }) =>
-        unit.owner() === this.bomber.owner() &&
+    const owner = this.bomber.owner();
+    const nearAirbase = this.mg.nearbyUnits(this.homeBaseTile, 3, [
+      UnitType.Airbase,
+    ]);
+    if (
+      nearAirbase.some(
+        ({ unit }) =>
+          unit.owner() === owner &&
+          unit.isActive() &&
+          !unit.isUnderConstruction(),
+      )
+    ) {
+      return true;
+    }
+    return owner.units(UnitType.Carrier).some((u) => u.isActive());
+  }
+
+  private findNearestCarrier(): Unit | undefined {
+    const owner = this.bomber.owner();
+    let best: Unit | undefined;
+    let bestDist = Infinity;
+    for (const u of owner.units(UnitType.Carrier)) {
+      if (!u.isActive()) continue;
+      const d = this.mg.euclideanDistSquared(this.bomber.tile(), u.tile());
+      if (d < bestDist) {
+        best = u;
+        bestDist = d;
+      }
+    }
+    return best;
+  }
+
+  private checkFuelDepotRefuel(): void {
+    const owner = this.bomber.owner();
+    const nearby = this.mg.nearbyUnits(this.bomber.tile(), 5, [
+      UnitType.FuelDepot,
+    ]);
+    for (const { unit } of nearby) {
+      if (
+        unit.owner() === owner &&
         unit.isActive() &&
-        !unit.isUnderConstruction(),
-    );
+        !unit.isUnderConstruction()
+      ) {
+        this.fuel = Math.min(this.fuel + 20, this.maxFuel);
+        break;
+      }
+    }
   }
 
   private doFinding(range: number): void {
@@ -131,7 +179,11 @@ export class TacticalBomberExecution implements Execution {
     let best: Unit | undefined;
     let bestDist = Infinity;
     for (const { unit, distSquared } of allTargets) {
-      if (unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true) && distSquared < bestDist) {
+      if (
+        unit.owner() !== owner &&
+        owner.canAttackPlayer(unit.owner(), true) &&
+        distSquared < bestDist
+      ) {
         best = unit;
         bestDist = distSquared;
       }
@@ -171,8 +223,10 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    this.moveToward(this.homeBaseTile, moveSpeed);
-    if (this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1) {
+    const carrier = this.findNearestCarrier();
+    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    this.moveToward(returnTarget, moveSpeed);
+    if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.bomber.modifyHealth(10);
       this.phase = "idle";

@@ -343,6 +343,7 @@ export class UnitLayer implements Layer {
       case UnitType.TacticalBomber:
       case UnitType.StrategicBomber:
       case UnitType.AttackHelicopter:
+      case UnitType.Carrier:
         this.handleWarShipEvent(unit);
         break;
       case UnitType.Shell:
