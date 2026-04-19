@@ -822,11 +822,11 @@ export class DefaultConfig implements Config {
             .reduce((a, b) => a + b, 0) *
             this.cityTroopIncrease();
 
-    // Worker ratio scales troop cap: all-troops (0) = 1.5x, balanced (0.5) = 1.0x, all-workers (1) = 0.5x
+    // Worker ratio: all-troops (0) = 1.5x cap, balanced (0.5) = 1.0x, all-workers (1) = 0.1x cap
     const troopCapMult =
       player.type() === PlayerType.Human && this.hasInfiniteTroopsFor(player)
         ? 1
-        : 1.5 - player.workerRatio();
+        : this.workerTroopMult(player.workerRatio());
     const maxTroops = baseTroops * troopCapMult;
 
     if (player.type() === PlayerType.Bot) {
@@ -851,6 +851,15 @@ export class DefaultConfig implements Config {
     }
   }
 
+  // Piecewise multiplier for troop cap and growth rate:
+  // ratio 0 (all troops) → 1.5x, ratio 0.5 (balanced) → 1.0x, ratio 1 (all workers) → 0.1x
+  private workerTroopMult(workerRatio: number): number {
+    if (workerRatio <= 0.5) {
+      return 1.5 - workerRatio; // linear 1.5 → 1.0
+    }
+    return 1.0 - (workerRatio - 0.5) * 1.8; // linear 1.0 → 0.1
+  }
+
   troopIncreaseRate(player: Player): number {
     const max = this.maxTroops(player);
 
@@ -858,6 +867,9 @@ export class DefaultConfig implements Config {
 
     const ratio = 1 - player.troops() / max;
     toAdd *= ratio;
+
+    // Worker ratio also slows troop growth rate, creating ramp-up time when converting
+    toAdd *= this.workerTroopMult(player.workerRatio());
 
     if (player.type() === PlayerType.Bot) {
       toAdd *= 0.6;
@@ -908,14 +920,14 @@ export class DefaultConfig implements Config {
     }
 
     // Worker ratio scales gold: at 0 (all troops) = 0.1x, at 0.5 (balanced) = 1.0x,
-    // at 1.0 (all workers) = popFactor (scales with land + cities, capped at 3x)
+    // at 1.0 (all workers) = 5*popFactor (proportional to the 10x troop cap penalty)
     const ratio = player.workerRatio();
     let workerMult: number;
     if (ratio <= 0.5) {
       workerMult = 0.1 + ratio * 1.8; // linear 0.1 → 1.0
     } else {
       const popFactor = this.workerPopulationFactor(player);
-      workerMult = 1.0 + (ratio - 0.5) * 2 * (popFactor - 1.0); // linear 1.0 → popFactor
+      workerMult = 1.0 + (ratio - 0.5) * 2 * (5 * popFactor - 1.0); // linear 1.0 → 5*popFactor
     }
 
     return BigInt(Math.floor(Number(baseRate) * multiplier * workerMult));

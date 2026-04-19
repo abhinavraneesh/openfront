@@ -345,28 +345,38 @@ export class ControlPanel extends LitElement implements Layer {
           class="flex-1 h-1.5 accent-blue-500 cursor-pointer"
         />
       </div>
-      <!-- Row 3: workers ratio slider -->
+      <!-- Row 3: workers/troops ratio slider -->
       <div class="flex items-center gap-1.5 mt-1" translate="no">
         <div
-          class="flex items-center gap-1 shrink-0 border border-gray-600 rounded-md px-1 py-0.5 text-sm font-bold text-white w-[8rem]"
+          class="flex items-center gap-1 shrink-0 border border-gray-600 rounded-md px-1 py-0.5 text-sm font-bold text-white cursor-pointer w-[8rem]"
         >
           <img
-            src=${soldierIcon}
+            src=${this.workerRatio > 0.5 ? goldCoinIcon : soldierIcon}
             alt=""
             aria-hidden="true"
             width="12"
             height="12"
-            style="filter: brightness(0) invert(1);"
+            style="filter: ${this.workerRatio > 0.5
+              ? "brightness(0) saturate(100%) invert(87%) sepia(55%) saturate(400%) hue-rotate(5deg) brightness(103%)"
+              : "brightness(0) invert(1)"}"
           />
-          <span class="text-[10px] leading-tight text-center w-full">
-            ${this.workerRatio < 0.5
-              ? `troops ${((1 - this.workerRatio) * 100).toFixed(0)}%`
-              : this.workerRatio > 0.5
-                ? `workers ${(this.workerRatio * 100).toFixed(0)}%`
-                : "balanced"}
+          <span class="text-sm font-bold tabular-nums">
+            ${this.workerRatio === 0.5
+              ? "balanced"
+              : this.workerRatio < 0.5
+                ? `${((1 - this.workerRatio) * 100).toFixed(0)}% ⚔`
+                : `${(this.workerRatio * 100).toFixed(0)}% 💰`}
           </span>
         </div>
-        <span class="text-[9px] text-gray-400 shrink-0">⚔️</span>
+        <img
+          src=${soldierIcon}
+          alt=""
+          aria-hidden="true"
+          width="11"
+          height="11"
+          class="shrink-0 opacity-50"
+          style="filter: brightness(0) invert(1);"
+        />
         <input
           type="range"
           min="0"
@@ -375,9 +385,16 @@ export class ControlPanel extends LitElement implements Layer {
           .value=${String(Math.round(this.workerRatio * 100))}
           @input=${(e: Event) => this.handleWorkerSliderInput(e)}
           @change=${(e: Event) => this.handleWorkerSliderChange(e)}
-          class="flex-1 h-1.5 accent-yellow-500 cursor-pointer"
+          class="flex-1 h-1.5 accent-yellow-400 cursor-pointer"
         />
-        <span class="text-[9px] text-gray-400 shrink-0">💰</span>
+        <img
+          src=${goldCoinIcon}
+          alt=""
+          aria-hidden="true"
+          width="11"
+          height="11"
+          class="shrink-0 opacity-50"
+        />
       </div>
     `;
   }
@@ -428,21 +445,34 @@ export class ControlPanel extends LitElement implements Layer {
         </div>
       </div>
       <!-- Workers ratio row -->
-      <div class="flex gap-1 items-center mt-1" translate="no">
-        <span class="text-[9px] text-gray-400 shrink-0">⚔️</span>
-        <div class="flex-1">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            .value=${String(Math.round(this.workerRatio * 100))}
-            @input=${(e: Event) => this.handleWorkerSliderInput(e)}
-            @change=${(e: Event) => this.handleWorkerSliderChange(e)}
-            class="w-full h-1.5 accent-yellow-500 cursor-pointer"
-          />
-        </div>
-        <span class="text-[9px] text-gray-400 shrink-0">💰</span>
+      <div class="flex gap-1.5 items-center mt-1" translate="no">
+        <img
+          src=${soldierIcon}
+          alt=""
+          aria-hidden="true"
+          width="11"
+          height="11"
+          class="shrink-0 opacity-50"
+          style="filter: brightness(0) invert(1);"
+        />
+        <input
+          type="range"
+          min="0"
+          max="100"
+          step="5"
+          .value=${String(Math.round(this.workerRatio * 100))}
+          @input=${(e: Event) => this.handleWorkerSliderInput(e)}
+          @change=${(e: Event) => this.handleWorkerSliderChange(e)}
+          class="flex-1 h-1.5 accent-yellow-400 cursor-pointer"
+        />
+        <img
+          src=${goldCoinIcon}
+          alt=""
+          aria-hidden="true"
+          width="11"
+          height="11"
+          class="shrink-0 opacity-50"
+        />
       </div>
     `;
   }
