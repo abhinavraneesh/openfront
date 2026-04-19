@@ -73,6 +73,7 @@ export class PlayerImpl implements Player {
 
   private _gold: bigint;
   private _troops: bigint;
+  private _workerRatio: number = 0.5;
 
   markedTraitorTick = -1;
   private _betrayalCount: number = 0;
@@ -180,6 +181,7 @@ export class PlayerImpl implements Player {
       betrayals: this._betrayalCount,
       lastDeleteUnitTick: this.lastDeleteUnitTick,
       isLobbyCreator: this.isLobbyCreator(),
+      workerRatio: this._workerRatio,
     };
   }
 
@@ -943,6 +945,14 @@ export class PlayerImpl implements Player {
     const toRemove = minInt(this._troops, toInt(troops));
     this._troops -= toRemove;
     return Number(toRemove);
+  }
+
+  workerRatio(): number {
+    return this._workerRatio;
+  }
+
+  setWorkerRatio(ratio: number): void {
+    this._workerRatio = Math.max(0, Math.min(1, ratio));
   }
 
   captureUnit(unit: Unit): void {

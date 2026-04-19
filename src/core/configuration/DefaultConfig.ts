@@ -811,7 +811,7 @@ export class DefaultConfig implements Config {
   }
 
   maxTroops(player: Player | PlayerView): number {
-    const maxTroops =
+    const baseTroops =
       player.type() === PlayerType.Human && this.hasInfiniteTroopsFor(player)
         ? 1_000_000_000
         : 2 * (Math.pow(player.numTilesOwned(), 0.6) * 1000 + 50000) +
@@ -821,6 +821,13 @@ export class DefaultConfig implements Config {
             .map((city) => city.level())
             .reduce((a, b) => a + b, 0) *
             this.cityTroopIncrease();
+
+    // Worker ratio scales troop cap: all-troops (0) = 1.5x, balanced (0.5) = 1.0x, all-workers (1) = 0.5x
+    const troopCapMult =
+      player.type() === PlayerType.Human && this.hasInfiniteTroopsFor(player)
+        ? 1
+        : 1.5 - player.workerRatio();
+    const maxTroops = baseTroops * troopCapMult;
 
     if (player.type() === PlayerType.Bot) {
       return maxTroops / 3;
@@ -878,6 +885,19 @@ export class DefaultConfig implements Config {
     return Math.min(player.troops() + toAdd, max) - player.troops();
   }
 
+  private workerPopulationFactor(player: Player): number {
+    const tiles = player.numTilesOwned();
+    const cityLevels = player
+      .units(UnitType.City)
+      .filter((u) => !u.isUnderConstruction())
+      .map((city) => city.level())
+      .reduce((a, b) => a + b, 0);
+    // sqrt scaling: 10k tiles → 1.5x, 40k → 2.0x, 100k → 2.58x; each city level adds 5%
+    const tileFactor = 1 + Math.sqrt(tiles / 10_000) * 0.5;
+    const popFactor = Math.min(tileFactor + cityLevels * 0.05, 3.0);
+    return popFactor;
+  }
+
   goldAdditionRate(player: Player): Gold {
     const multiplier = this.goldMultiplierFor(player);
     let baseRate: bigint;
@@ -886,7 +906,19 @@ export class DefaultConfig implements Config {
     } else {
       baseRate = 100n;
     }
-    return BigInt(Math.floor(Number(baseRate) * multiplier));
+
+    // Worker ratio scales gold: at 0 (all troops) = 0.1x, at 0.5 (balanced) = 1.0x,
+    // at 1.0 (all workers) = popFactor (scales with land + cities, capped at 3x)
+    const ratio = player.workerRatio();
+    let workerMult: number;
+    if (ratio <= 0.5) {
+      workerMult = 0.1 + ratio * 1.8; // linear 0.1 → 1.0
+    } else {
+      const popFactor = this.workerPopulationFactor(player);
+      workerMult = 1.0 + (ratio - 0.5) * 2 * (popFactor - 1.0); // linear 1.0 → popFactor
+    }
+
+    return BigInt(Math.floor(Number(baseRate) * multiplier * workerMult));
   }
 
   nukeMagnitudes(unitType: UnitType): NukeMagnitude {

@@ -497,6 +497,10 @@ export class PlayerView {
   numTilesOwned(): number {
     return this.data.tilesOwned;
   }
+
+  workerRatio(): number {
+    return this.data.workerRatio ?? 0.5;
+  }
   allies(): PlayerView[] {
     return this.data.allies.map(
       (a) => this.game.playerBySmallID(a) as PlayerView,

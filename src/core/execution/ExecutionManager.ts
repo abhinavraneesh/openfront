@@ -26,6 +26,7 @@ import { SpawnExecution } from "./SpawnExecution";
 import { TargetPlayerExecution } from "./TargetPlayerExecution";
 import { TransportShipExecution } from "./TransportShipExecution";
 import { TribeSpawner } from "./TribeSpawner";
+import { SetWorkerRatioExecution } from "./SetWorkerRatioExecution";
 import { UpgradeStructureExecution } from "./UpgradeStructureExecution";
 import { PlayerSpawner } from "./utils/PlayerSpawner";
 
@@ -121,6 +122,8 @@ export class Executor {
         return new MarkDisconnectedExecution(player, intent.isDisconnected);
       case "toggle_pause":
         return new PauseExecution(player, intent.paused);
+      case "set_worker_ratio":
+        return new SetWorkerRatioExecution(player, intent.ratio);
       default:
         throw new Error(`intent type ${intent} not found`);
     }

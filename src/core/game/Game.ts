@@ -699,6 +699,8 @@ export interface Player {
   setTroops(troops: number): void;
   addTroops(troops: number): void;
   removeTroops(troops: number): number;
+  workerRatio(): number;
+  setWorkerRatio(ratio: number): void;
 
   // Units
   units(...types: UnitType[]): Unit[];

@@ -173,6 +173,10 @@ export class SendUpdateGameConfigIntentEvent implements GameEvent {
   constructor(public readonly config: Partial<GameConfig>) {}
 }
 
+export class SetWorkerRatioIntentEvent implements GameEvent {
+  constructor(public readonly ratio: number) {}
+}
+
 export class Transport {
   private socket: WebSocket | null = null;
 
@@ -261,6 +265,10 @@ export class Transport {
 
     this.eventBus.on(SendUpdateGameConfigIntentEvent, (e) =>
       this.onSendUpdateGameConfigIntent(e),
+    );
+
+    this.eventBus.on(SetWorkerRatioIntentEvent, (e) =>
+      this.onSetWorkerRatioIntent(e),
     );
   }
 
@@ -641,6 +649,13 @@ export class Transport {
     this.sendIntent({
       type: "update_game_config",
       config: event.config,
+    });
+  }
+
+  private onSetWorkerRatioIntent(event: SetWorkerRatioIntentEvent) {
+    this.sendIntent({
+      type: "set_worker_ratio",
+      ratio: event.ratio,
     });
   }
 

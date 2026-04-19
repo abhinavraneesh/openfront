@@ -188,6 +188,7 @@ export interface PlayerUpdate {
   betrayals: number;
   lastDeleteUnitTick: Tick;
   isLobbyCreator: boolean;
+  workerRatio: number;
 }
 
 export interface AllianceView {
