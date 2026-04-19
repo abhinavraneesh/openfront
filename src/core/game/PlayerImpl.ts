@@ -1179,7 +1179,14 @@ export class PlayerImpl implements Player {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Airbase:
         return this.landBasedStructureSpawn(targetTile, validTiles);
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+        return this.aircraftSpawn(targetTile);
+      case UnitType.AttackHelicopter:
+        return this.helicopterSpawn(targetTile);
       default:
         assertNever(unitType);
     }
@@ -1274,6 +1281,26 @@ export class PlayerImpl implements Player {
 
   landBasedUnitSpawn(tile: TileRef): TileRef | false {
     return this.mg.isLand(tile) ? tile : false;
+  }
+
+  // Returns the tile of the nearest active Airbase owned by this player.
+  aircraftSpawn(targetTile: TileRef): TileRef | false {
+    const best = findClosestBy(
+      this.units(UnitType.Airbase),
+      (ab) => this.mg.euclideanDistSquared(ab.tile(), targetTile),
+      (ab) => ab.isActive() && !ab.isUnderConstruction(),
+    );
+    return best?.tile() ?? false;
+  }
+
+  // Returns the tile of the nearest active City owned by this player.
+  helicopterSpawn(targetTile: TileRef): TileRef | false {
+    const best = findClosestBy(
+      this.units(UnitType.City),
+      (c) => this.mg.euclideanDistSquared(c.tile(), targetTile),
+      (c) => c.isActive() && !c.isUnderConstruction(),
+    );
+    return best?.tile() ?? false;
   }
 
   landBasedStructureSpawn(

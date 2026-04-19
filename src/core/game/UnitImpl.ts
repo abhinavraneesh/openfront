@@ -76,6 +76,11 @@ export class UnitImpl implements Unit {
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Minelayer:
+      case UnitType.Airbase:
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+      case UnitType.AttackHelicopter:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -199,6 +204,11 @@ export class UnitImpl implements Unit {
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Minelayer:
+      case UnitType.Airbase:
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+      case UnitType.AttackHelicopter:
       case UnitType.Port:
       case UnitType.MissileSilo:
       case UnitType.DefensePost:
@@ -304,6 +314,11 @@ export class UnitImpl implements Unit {
         case UnitType.Battleship:
         case UnitType.Submarine:
         case UnitType.Minelayer:
+        case UnitType.Airbase:
+        case UnitType.Fighter:
+        case UnitType.TacticalBomber:
+        case UnitType.StrategicBomber:
+        case UnitType.AttackHelicopter:
         case UnitType.Factory:
           this.mg.stats().unitDestroy(destroyer, this._type);
           this.mg.stats().unitLose(this.owner(), this._type);

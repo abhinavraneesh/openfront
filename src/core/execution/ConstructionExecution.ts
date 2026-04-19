@@ -1,18 +1,23 @@
 import { Execution, Game, Player, Tick, Unit, UnitType } from "../game/Game";
 import { TileRef } from "../game/GameMap";
+import { AirbaseExecution } from "./AirbaseExecution";
+import { AttackHelicopterExecution } from "./AttackHelicopterExecution";
 import { BattleshipExecution } from "./BattleshipExecution";
 import { CityExecution } from "./CityExecution";
 import { CruiserExecution } from "./CruiserExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
 import { DestroyerExecution } from "./DestroyerExecution";
 import { FactoryExecution } from "./FactoryExecution";
+import { FighterExecution } from "./FighterExecution";
 import { MinelayerExecution } from "./MinelayerExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
+import { StrategicBomberExecution } from "./StrategicBomberExecution";
 import { SubmarineExecution } from "./SubmarineExecution";
+import { TacticalBomberExecution } from "./TacticalBomberExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
 export class ConstructionExecution implements Execution {
@@ -174,6 +179,35 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
         this.mg.addExecution(new FactoryExecution(this.structure!));
         break;
+      case UnitType.Airbase:
+        this.mg.addExecution(new AirbaseExecution(this.structure!));
+        break;
+      case UnitType.Fighter:
+        this.mg.addExecution(
+          new FighterExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.TacticalBomber:
+        this.mg.addExecution(
+          new TacticalBomberExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.StrategicBomber:
+        this.mg.addExecution(
+          new StrategicBomberExecution({
+            owner: player,
+            patrolTile: this.tile,
+          }),
+        );
+        break;
+      case UnitType.AttackHelicopter:
+        this.mg.addExecution(
+          new AttackHelicopterExecution({
+            owner: player,
+            patrolTile: this.tile,
+          }),
+        );
+        break;
       default:
         console.warn(
           `unit type ${this.constructionType} cannot be constructed`,
@@ -190,6 +224,7 @@ export class ConstructionExecution implements Execution {
       case UnitType.SAMLauncher:
       case UnitType.City:
       case UnitType.Factory:
+      case UnitType.Airbase:
         return true;
       default:
         return false;

@@ -285,7 +285,9 @@ export interface UnitInfo {
   maxHealth?: number;
   damage?: number;
   attackRate?: number; // ticks between attacks
-  range?: number; // targeting range in tiles
+  range?: number;      // targeting range in tiles
+  moveSpeed?: number;  // steps per tick (aircraft)
+  maxFuel?: number;    // fuel ticks before crash (undefined = unlimited)
   constructionDuration?: number;
   upgradable?: boolean;
 }
@@ -322,6 +324,12 @@ export enum UnitType {
   Battleship = "Battleship",
   Submarine = "Submarine",
   Minelayer = "Minelayer",
+  // Air units (Phase 2)
+  Airbase = "Airbase",
+  Fighter = "Fighter",
+  TacticalBomber = "Tactical Bomber",
+  StrategicBomber = "Strategic Bomber",
+  AttackHelicopter = "Attack Helicopter",
 }
 
 export enum TrainType {
@@ -347,6 +355,10 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.Battleship,
   UnitType.Submarine,
   UnitType.Minelayer,
+  UnitType.Fighter,
+  UnitType.TacticalBomber,
+  UnitType.StrategicBomber,
+  UnitType.AttackHelicopter,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -356,6 +368,7 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.Airbase,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -450,6 +463,25 @@ export interface UnitParamsMap {
   };
 
   [UnitType.Minelayer]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Airbase]: Record<string, never>;
+
+  // Aircraft: patrolTile stores the home-base (Airbase/City) tile
+  [UnitType.Fighter]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.TacticalBomber]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.StrategicBomber]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.AttackHelicopter]: {
     patrolTile: TileRef;
   };
 }

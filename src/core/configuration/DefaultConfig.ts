@@ -515,6 +515,56 @@ export class DefaultConfig implements Config {
           maxHealth: 300,
         };
         break;
+      case UnitType.Airbase:
+        info = {
+          cost: this.costWrapper(() => 500_000, UnitType.Airbase),
+          maxHealth: 1500,
+          constructionDuration: this.instantBuild() ? 0 : 3 * 10,
+        };
+        break;
+      case UnitType.Fighter:
+        info = {
+          cost: this.costWrapper(() => 300_000, UnitType.Fighter),
+          maxHealth: 300,
+          damage: 200,
+          attackRate: 8,
+          range: 50,
+          moveSpeed: 4,
+          maxFuel: 80,
+        };
+        break;
+      case UnitType.TacticalBomber:
+        info = {
+          cost: this.costWrapper(() => 600_000, UnitType.TacticalBomber),
+          maxHealth: 400,
+          damage: 600,
+          attackRate: 0,
+          range: 80,
+          moveSpeed: 2,
+          maxFuel: 60,
+        };
+        break;
+      case UnitType.StrategicBomber:
+        info = {
+          cost: this.costWrapper(() => 1_200_000, UnitType.StrategicBomber),
+          maxHealth: 500,
+          damage: 1500,
+          attackRate: 0,
+          range: 120,
+          moveSpeed: 1,
+          maxFuel: 120,
+        };
+        break;
+      case UnitType.AttackHelicopter:
+        info = {
+          cost: this.costWrapper(() => 450_000, UnitType.AttackHelicopter),
+          maxHealth: 400,
+          damage: 150,
+          attackRate: 10,
+          range: 40,
+          moveSpeed: 2,
+        };
+        break;
       default:
         assertNever(type);
     }

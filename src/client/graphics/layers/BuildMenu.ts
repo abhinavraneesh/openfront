@@ -43,6 +43,12 @@ const cruiserIcon = warshipIcon;
 const battleshipIcon = warshipIcon;
 const submarineIcon = warshipIcon;
 const minelayerIcon = warshipIcon;
+// Air unit icons reuse existing assets until dedicated sprites are added
+const airbaseIcon = portIcon;
+const fighterIcon = warshipIcon;
+const tacticalBomberIcon = warshipIcon;
+const strategicBomberIcon = warshipIcon;
+const attackHelicopterIcon = warshipIcon;
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -115,6 +121,41 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: minelayerIcon,
       description: "build_menu.desc.minelayer",
       key: "unit_type.minelayer",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Airbase,
+      icon: airbaseIcon,
+      description: "build_menu.desc.airbase",
+      key: "unit_type.airbase",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Fighter,
+      icon: fighterIcon,
+      description: "build_menu.desc.fighter",
+      key: "unit_type.fighter",
+      countable: true,
+    },
+    {
+      unitType: UnitType.TacticalBomber,
+      icon: tacticalBomberIcon,
+      description: "build_menu.desc.tactical_bomber",
+      key: "unit_type.tactical_bomber",
+      countable: true,
+    },
+    {
+      unitType: UnitType.StrategicBomber,
+      icon: strategicBomberIcon,
+      description: "build_menu.desc.strategic_bomber",
+      key: "unit_type.strategic_bomber",
+      countable: true,
+    },
+    {
+      unitType: UnitType.AttackHelicopter,
+      icon: attackHelicopterIcon,
+      description: "build_menu.desc.attack_helicopter",
+      key: "unit_type.attack_helicopter",
       countable: true,
     },
     {

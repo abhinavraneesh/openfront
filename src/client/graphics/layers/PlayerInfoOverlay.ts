@@ -161,6 +161,10 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           UnitType.Battleship,
           UnitType.Submarine,
           UnitType.Minelayer,
+          UnitType.Fighter,
+          UnitType.TacticalBomber,
+          UnitType.StrategicBomber,
+          UnitType.AttackHelicopter,
           UnitType.TradeShip,
           UnitType.TransportShip,
         )
