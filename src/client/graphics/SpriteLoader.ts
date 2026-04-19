@@ -26,6 +26,11 @@ type TrainTypeSprite = (typeof TrainTypeSprite)[keyof typeof TrainTypeSprite];
 const SPRITE_CONFIG: Partial<Record<UnitType | TrainTypeSprite, string>> = {
   [UnitType.TransportShip]: transportShipSprite,
   [UnitType.Warship]: warshipSprite,
+  [UnitType.Destroyer]: warshipSprite,
+  [UnitType.Cruiser]: warshipSprite,
+  [UnitType.Battleship]: warshipSprite,
+  [UnitType.Submarine]: warshipSprite,
+  [UnitType.Minelayer]: warshipSprite,
   [UnitType.SAMMissile]: samMissileSprite,
   [UnitType.AtomBomb]: atomBombSprite,
   [UnitType.HydrogenBomb]: hydrogenBombSprite,

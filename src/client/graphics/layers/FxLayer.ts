@@ -79,6 +79,11 @@ export class FxLayer implements Layer {
         break;
       }
       case UnitType.Warship:
+      case UnitType.Destroyer:
+      case UnitType.Cruiser:
+      case UnitType.Battleship:
+      case UnitType.Submarine:
+      case UnitType.Minelayer:
         this.onWarshipEvent(unit);
         break;
       case UnitType.Shell:
@@ -110,6 +115,11 @@ export class FxLayer implements Layer {
         this.eventBus.emit(new PlaySoundEffectEvent("mirv-launch"));
         break;
       case UnitType.Warship:
+      case UnitType.Destroyer:
+      case UnitType.Cruiser:
+      case UnitType.Battleship:
+      case UnitType.Submarine:
+      case UnitType.Minelayer:
         if (unit.owner() === this.game.myPlayer()) {
           this.eventBus.emit(new PlaySoundEffectEvent("build-warship"));
         }

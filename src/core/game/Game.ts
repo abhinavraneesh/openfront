@@ -284,6 +284,8 @@ export interface UnitInfo {
   cost: (game: Game, player: Player) => Gold;
   maxHealth?: number;
   damage?: number;
+  attackRate?: number; // ticks between attacks
+  range?: number; // targeting range in tiles
   constructionDuration?: number;
   upgradable?: boolean;
 }
@@ -314,6 +316,12 @@ export enum UnitType {
   MIRVWarhead = "MIRV Warhead",
   Train = "Train",
   Factory = "Factory",
+  // Naval units (Phase 1)
+  Destroyer = "Destroyer",
+  Cruiser = "Cruiser",
+  Battleship = "Battleship",
+  Submarine = "Submarine",
+  Minelayer = "Minelayer",
 }
 
 export enum TrainType {
@@ -334,6 +342,11 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.HydrogenBomb,
   UnitType.MIRV,
   UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Minelayer,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -418,6 +431,26 @@ export interface UnitParamsMap {
 
   [UnitType.MIRVWarhead]: {
     targetTile?: number;
+  };
+
+  [UnitType.Destroyer]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Cruiser]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Battleship]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Submarine]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Minelayer]: {
+    patrolTile: TileRef;
   };
 }
 

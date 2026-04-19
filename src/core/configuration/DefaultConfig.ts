@@ -473,6 +473,48 @@ export class DefaultConfig implements Config {
           cost: () => 0n,
         };
         break;
+      case UnitType.Destroyer:
+        info = {
+          cost: this.costWrapper(() => 150_000, UnitType.Destroyer),
+          maxHealth: 600,
+          damage: 120,
+          attackRate: 15,
+          range: 100,
+        };
+        break;
+      case UnitType.Cruiser:
+        info = {
+          cost: this.costWrapper(() => 300_000, UnitType.Cruiser),
+          maxHealth: 900,
+          damage: 200,
+          attackRate: 20,
+          range: 110,
+        };
+        break;
+      case UnitType.Battleship:
+        info = {
+          cost: this.costWrapper(() => 600_000, UnitType.Battleship),
+          maxHealth: 1800,
+          damage: 400,
+          attackRate: 25,
+          range: 150,
+        };
+        break;
+      case UnitType.Submarine:
+        info = {
+          cost: this.costWrapper(() => 250_000, UnitType.Submarine),
+          maxHealth: 700,
+          damage: 300,
+          attackRate: 20,
+          range: 90,
+        };
+        break;
+      case UnitType.Minelayer:
+        info = {
+          cost: this.costWrapper(() => 80_000, UnitType.Minelayer),
+          maxHealth: 300,
+        };
+        break;
       default:
         assertNever(type);
     }

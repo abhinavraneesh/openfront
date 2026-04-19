@@ -63,7 +63,15 @@ export class UILayer implements Layer {
     this.selectionAnimTime = (this.selectionAnimTime + 1) % 60;
 
     // If there's a selected warship, redraw to update the selection box animation
-    if (this.selectedUnit && this.selectedUnit.type() === UnitType.Warship) {
+    if (
+      this.selectedUnit &&
+      (this.selectedUnit.type() === UnitType.Warship ||
+        this.selectedUnit.type() === UnitType.Destroyer ||
+        this.selectedUnit.type() === UnitType.Cruiser ||
+        this.selectedUnit.type() === UnitType.Battleship ||
+        this.selectedUnit.type() === UnitType.Submarine ||
+        this.selectedUnit.type() === UnitType.Minelayer)
+    ) {
       this.drawSelectionBox(this.selectedUnit);
     }
 
@@ -107,7 +115,12 @@ export class UILayer implements Layer {
       return;
     }
     switch (unit.type()) {
-      case UnitType.Warship: {
+      case UnitType.Warship:
+      case UnitType.Destroyer:
+      case UnitType.Cruiser:
+      case UnitType.Battleship:
+      case UnitType.Submarine:
+      case UnitType.Minelayer: {
         this.drawHealthBar(unit);
         break;
       }
@@ -156,7 +169,15 @@ export class UILayer implements Layer {
   private onUnitSelection(event: UnitSelectionEvent) {
     if (event.isSelected) {
       this.selectedUnit = event.unit;
-      if (event.unit && event.unit.type() === UnitType.Warship) {
+      if (
+        event.unit &&
+        (event.unit.type() === UnitType.Warship ||
+          event.unit.type() === UnitType.Destroyer ||
+          event.unit.type() === UnitType.Cruiser ||
+          event.unit.type() === UnitType.Battleship ||
+          event.unit.type() === UnitType.Submarine ||
+          event.unit.type() === UnitType.Minelayer)
+      ) {
         this.drawSelectionBox(event.unit);
       }
     } else {

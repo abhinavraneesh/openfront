@@ -1181,6 +1181,11 @@ export class GameImpl implements Game {
         .filter(
           (u) =>
             u.type() === UnitType.Warship ||
+            u.type() === UnitType.Destroyer ||
+            u.type() === UnitType.Cruiser ||
+            u.type() === UnitType.Battleship ||
+            u.type() === UnitType.Submarine ||
+            u.type() === UnitType.Minelayer ||
             u.type() === UnitType.TransportShip,
         );
 

@@ -1,13 +1,18 @@
 import { Execution, Game, Player, Tick, Unit, UnitType } from "../game/Game";
 import { TileRef } from "../game/GameMap";
+import { BattleshipExecution } from "./BattleshipExecution";
 import { CityExecution } from "./CityExecution";
+import { CruiserExecution } from "./CruiserExecution";
 import { DefensePostExecution } from "./DefensePostExecution";
+import { DestroyerExecution } from "./DestroyerExecution";
 import { FactoryExecution } from "./FactoryExecution";
+import { MinelayerExecution } from "./MinelayerExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
+import { SubmarineExecution } from "./SubmarineExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
 export class ConstructionExecution implements Execution {
@@ -122,6 +127,31 @@ export class ConstructionExecution implements Execution {
       case UnitType.Warship:
         this.mg.addExecution(
           new WarshipExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.Destroyer:
+        this.mg.addExecution(
+          new DestroyerExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.Cruiser:
+        this.mg.addExecution(
+          new CruiserExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.Battleship:
+        this.mg.addExecution(
+          new BattleshipExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.Submarine:
+        this.mg.addExecution(
+          new SubmarineExecution({ owner: player, patrolTile: this.tile }),
+        );
+        break;
+      case UnitType.Minelayer:
+        this.mg.addExecution(
+          new MinelayerExecution({ owner: player, patrolTile: this.tile }),
         );
         break;
       case UnitType.Port:

@@ -37,6 +37,12 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
+// Naval unit icons reuse the warship icon until dedicated assets are added
+const destroyerIcon = warshipIcon;
+const cruiserIcon = warshipIcon;
+const battleshipIcon = warshipIcon;
+const submarineIcon = warshipIcon;
+const minelayerIcon = warshipIcon;
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -74,6 +80,41 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: warshipIcon,
       description: "build_menu.desc.warship",
       key: "unit_type.warship",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Destroyer,
+      icon: destroyerIcon,
+      description: "build_menu.desc.destroyer",
+      key: "unit_type.destroyer",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Cruiser,
+      icon: cruiserIcon,
+      description: "build_menu.desc.cruiser",
+      key: "unit_type.cruiser",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Battleship,
+      icon: battleshipIcon,
+      description: "build_menu.desc.battleship",
+      key: "unit_type.battleship",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Submarine,
+      icon: submarineIcon,
+      description: "build_menu.desc.submarine",
+      key: "unit_type.submarine",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Minelayer,
+      icon: minelayerIcon,
+      description: "build_menu.desc.minelayer",
+      key: "unit_type.minelayer",
       countable: true,
     },
     {
