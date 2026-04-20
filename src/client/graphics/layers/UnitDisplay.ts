@@ -83,13 +83,37 @@ export class UnitDisplay extends LitElement implements Layer {
         );
       case UnitType.Warship:
       case UnitType.Destroyer:
-      case UnitType.Cruiser:
-      case UnitType.Battleship:
-      case UnitType.Submarine:
       case UnitType.Minelayer:
         return (
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.Port).length ?? 0) > 0
+        );
+      case UnitType.Cruiser:
+      case UnitType.Battleship:
+      case UnitType.Submarine:
+      case UnitType.Carrier:
+        return (
+          this.cost(item) <= (player?.gold() ?? 0n) &&
+          (player?.units(UnitType.Port).length ?? 0) > 0 &&
+          (player?.units(UnitType.NavalYard).length ?? 0) > 0
+        );
+      case UnitType.NavalYard:
+      case UnitType.CoastalBattery:
+        return (
+          this.cost(item) <= (player?.gold() ?? 0n) &&
+          (player?.units(UnitType.Port).length ?? 0) > 0
+        );
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+        return (
+          this.cost(item) <= (player?.gold() ?? 0n) &&
+          (player?.units(UnitType.Airbase).length ?? 0) > 0
+        );
+      case UnitType.AttackHelicopter:
+        return (
+          this.cost(item) <= (player?.gold() ?? 0n) &&
+          (player?.units(UnitType.City).length ?? 0) > 0
         );
       default:
         return this.cost(item) <= (player?.gold() ?? 0n);
@@ -286,11 +310,30 @@ export class UnitDisplay extends LitElement implements Layer {
                 break;
               case UnitType.Warship:
               case UnitType.Destroyer:
+              case UnitType.Minelayer:
+                this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
+                break;
               case UnitType.Cruiser:
               case UnitType.Battleship:
               case UnitType.Submarine:
-              case UnitType.Minelayer:
+              case UnitType.Carrier:
+                this.eventBus?.emit(
+                  new ToggleStructureEvent([UnitType.Port, UnitType.NavalYard]),
+                );
+                break;
+              case UnitType.NavalYard:
+              case UnitType.CoastalBattery:
                 this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
+                break;
+              case UnitType.Fighter:
+              case UnitType.TacticalBomber:
+              case UnitType.StrategicBomber:
+                this.eventBus?.emit(
+                  new ToggleStructureEvent([UnitType.Airbase]),
+                );
+                break;
+              case UnitType.AttackHelicopter:
+                this.eventBus?.emit(new ToggleStructureEvent([UnitType.City]));
                 break;
               default:
                 this.eventBus?.emit(new ToggleStructureEvent([unitType]));

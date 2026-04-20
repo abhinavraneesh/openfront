@@ -286,6 +286,8 @@ export interface UnitInfo {
   damage?: number;
   attackRate?: number; // ticks between attacks
   range?: number; // targeting range in tiles
+  moveSpeed?: number; // steps per tick (aircraft)
+  maxFuel?: number; // fuel ticks before crash (undefined = unlimited)
   constructionDuration?: number;
   upgradable?: boolean;
 }
@@ -322,6 +324,19 @@ export enum UnitType {
   Battleship = "Battleship",
   Submarine = "Submarine",
   Minelayer = "Minelayer",
+  // Air units (Phase 2)
+  Airbase = "Airbase",
+  Fighter = "Fighter",
+  TacticalBomber = "Tactical Bomber",
+  StrategicBomber = "Strategic Bomber",
+  AttackHelicopter = "Attack Helicopter",
+  // Phase 3 advanced units
+  NavalYard = "Naval Yard",
+  FuelDepot = "Fuel Depot",
+  CoastalBattery = "Coastal Battery",
+  Carrier = "Carrier",
+  // Phase 4 internal units (not player-buildable)
+  Mine = "Mine",
 }
 
 export enum TrainType {
@@ -347,6 +362,11 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.Battleship,
   UnitType.Submarine,
   UnitType.Minelayer,
+  UnitType.Fighter,
+  UnitType.TacticalBomber,
+  UnitType.StrategicBomber,
+  UnitType.AttackHelicopter,
+  UnitType.Carrier,
 ] as const);
 
 export const Structures = unitTypeGroup([
@@ -356,6 +376,10 @@ export const Structures = unitTypeGroup([
   UnitType.MissileSilo,
   UnitType.Port,
   UnitType.Factory,
+  UnitType.Airbase,
+  UnitType.NavalYard,
+  UnitType.FuelDepot,
+  UnitType.CoastalBattery,
 ] as const);
 
 export const BuildMenus = unitTypeGroup([
@@ -391,6 +415,8 @@ export interface UnitParamsMap {
   [UnitType.Shell]: Record<string, never>;
 
   [UnitType.SAMMissile]: Record<string, never>;
+
+  [UnitType.Mine]: Record<string, never>;
 
   [UnitType.Port]: Record<string, never>;
 
@@ -450,6 +476,35 @@ export interface UnitParamsMap {
   };
 
   [UnitType.Minelayer]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.Airbase]: Record<string, never>;
+
+  // Aircraft: patrolTile stores the home-base (Airbase/City) tile
+  [UnitType.Fighter]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.TacticalBomber]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.StrategicBomber]: {
+    patrolTile: TileRef;
+  };
+
+  [UnitType.AttackHelicopter]: {
+    patrolTile: TileRef;
+  };
+
+  // Phase 3 structures
+  [UnitType.NavalYard]: Record<string, never>;
+  [UnitType.FuelDepot]: Record<string, never>;
+  [UnitType.CoastalBattery]: Record<string, never>;
+
+  // Carrier acts as floating Airbase; patrolTile stores its patrol center
+  [UnitType.Carrier]: {
     patrolTile: TileRef;
   };
 }
@@ -1052,6 +1107,7 @@ export enum MessageType {
   RECEIVED_TROOPS_FROM_PLAYER,
   CHAT,
   RENEW_ALLIANCE,
+  PORT_BLOCKADED,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -1090,6 +1146,7 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.SENT_TROOPS_TO_PLAYER]: MessageCategory.TRADE,
   [MessageType.RECEIVED_TROOPS_FROM_PLAYER]: MessageCategory.TRADE,
   [MessageType.CHAT]: MessageCategory.CHAT,
+  [MessageType.PORT_BLOCKADED]: MessageCategory.ATTACK,
 } as const;
 
 /**

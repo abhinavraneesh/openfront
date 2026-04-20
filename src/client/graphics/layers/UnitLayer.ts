@@ -339,7 +339,15 @@ export class UnitLayer implements Layer {
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Minelayer:
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+      case UnitType.AttackHelicopter:
+      case UnitType.Carrier:
         this.handleWarShipEvent(unit);
+        break;
+      case UnitType.Mine:
+        this.handleMineEvent(unit);
         break;
       case UnitType.Shell:
         this.handleShellEvent(unit);
@@ -362,6 +370,19 @@ export class UnitLayer implements Layer {
         this.handleNuke(unit);
         break;
     }
+  }
+
+  private handleMineEvent(unit: UnitView) {
+    const rel = this.relationship(unit);
+    this.clearCell(this.game.x(unit.lastTile()), this.game.y(unit.lastTile()));
+    if (!unit.isActive()) return;
+    this.paintCell(
+      this.game.x(unit.tile()),
+      this.game.y(unit.tile()),
+      rel,
+      unit.owner().borderColor(),
+      255,
+    );
   }
 
   private handleWarShipEvent(unit: UnitView) {

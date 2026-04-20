@@ -1,7 +1,17 @@
-import { Execution, Game, Unit, UnitType } from "../game/Game";
+import { Execution, Game, MessageType, Unit, UnitType } from "../game/Game";
 import { PseudoRandom } from "../PseudoRandom";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
+
+const BLOCKADE_RANGE = 30;
+const BLOCKADE_TYPES = [
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Carrier,
+] as const;
 
 export class PortExecution implements Execution {
   private active = true;
@@ -10,6 +20,7 @@ export class PortExecution implements Execution {
   private random: PseudoRandom;
   private checkOffset: number;
   private tradeShipSpawnRejections = 0;
+  private blockadeNotifiedAt = -Infinity;
 
   constructor(port: Unit) {
     this.port = port;
@@ -69,6 +80,18 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
+    if (this.isBlockaded()) {
+      const tick = this.mg.ticks();
+      if (tick - this.blockadeNotifiedAt > 600) {
+        this.blockadeNotifiedAt = tick;
+        this.mg.displayMessage(
+          "events_display.port_blockaded",
+          MessageType.PORT_BLOCKADED,
+          this.port.owner().id(),
+        );
+      }
+      return false;
+    }
     const numTradeShips = this.mg.unitCount(UnitType.TradeShip);
     const spawnRate = this.mg
       .config()
@@ -81,6 +104,19 @@ export class PortExecution implements Execution {
       this.tradeShipSpawnRejections++;
     }
     return false;
+  }
+
+  private isBlockaded(): boolean {
+    const owner = this.port.owner();
+    const nearby = this.mg.nearbyUnits(
+      this.port.tile(),
+      BLOCKADE_RANGE,
+      BLOCKADE_TYPES,
+    );
+    return nearby.some(
+      ({ unit }) =>
+        unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true),
+    );
   }
 
   createStation(): void {

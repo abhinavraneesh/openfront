@@ -515,6 +515,95 @@ export class DefaultConfig implements Config {
           maxHealth: 300,
         };
         break;
+      case UnitType.Airbase:
+        info = {
+          cost: this.costWrapper(() => 500_000, UnitType.Airbase),
+          maxHealth: 1500,
+          constructionDuration: this.instantBuild() ? 0 : 3 * 10,
+        };
+        break;
+      case UnitType.Fighter:
+        info = {
+          cost: this.costWrapper(() => 300_000, UnitType.Fighter),
+          maxHealth: 300,
+          damage: 200,
+          attackRate: 8,
+          range: 50,
+          moveSpeed: 4,
+          maxFuel: 80,
+        };
+        break;
+      case UnitType.TacticalBomber:
+        info = {
+          cost: this.costWrapper(() => 600_000, UnitType.TacticalBomber),
+          maxHealth: 400,
+          damage: 600,
+          attackRate: 0,
+          range: 80,
+          moveSpeed: 2,
+          maxFuel: 60,
+        };
+        break;
+      case UnitType.StrategicBomber:
+        info = {
+          cost: this.costWrapper(() => 1_200_000, UnitType.StrategicBomber),
+          maxHealth: 500,
+          damage: 1500,
+          attackRate: 0,
+          range: 120,
+          moveSpeed: 1,
+          maxFuel: 120,
+        };
+        break;
+      case UnitType.AttackHelicopter:
+        info = {
+          cost: this.costWrapper(() => 450_000, UnitType.AttackHelicopter),
+          maxHealth: 400,
+          damage: 150,
+          attackRate: 10,
+          range: 40,
+          moveSpeed: 2,
+        };
+        break;
+      case UnitType.NavalYard:
+        info = {
+          cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
+          maxHealth: 1200,
+          constructionDuration: 40,
+        };
+        break;
+      case UnitType.FuelDepot:
+        info = {
+          cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
+          maxHealth: 600,
+          constructionDuration: 20,
+        };
+        break;
+      case UnitType.CoastalBattery:
+        info = {
+          cost: this.costWrapper(() => 400_000, UnitType.CoastalBattery),
+          maxHealth: 800,
+          damage: 250,
+          attackRate: 30,
+          range: 80,
+          constructionDuration: 25,
+        };
+        break;
+      case UnitType.Carrier:
+        info = {
+          cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
+          maxHealth: 3000,
+          moveSpeed: 1,
+        };
+        break;
+      case UnitType.Mine:
+        // Internal unit spawned by Minelayer; not player-buildable
+        info = {
+          cost: this.costWrapper(() => 0, UnitType.Mine),
+          maxHealth: 1,
+          damage: 400,
+        };
+        break;
       default:
         assertNever(type);
     }

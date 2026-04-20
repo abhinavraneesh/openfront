@@ -44,6 +44,8 @@ const missileSiloIcon = assetUrl("images/MissileSiloIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samLauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
+const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
+const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
 
 function euclideanDistWorld(
   coord: { x: number; y: number },
@@ -161,6 +163,11 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           UnitType.Battleship,
           UnitType.Submarine,
           UnitType.Minelayer,
+          UnitType.Fighter,
+          UnitType.TacticalBomber,
+          UnitType.StrategicBomber,
+          UnitType.AttackHelicopter,
+          UnitType.Carrier,
           UnitType.TradeShip,
           UnitType.TransportShip,
         )
@@ -420,6 +427,8 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
               samLauncherIcon,
             )}
             ${this.displayUnitCount(player, UnitType.Warship, warshipIcon)}
+            ${this.displayUnitCount(player, UnitType.NavalYard, navalYardIcon)}
+            ${this.displayUnitCount(player, UnitType.Airbase, airbaseIcon)}
           </div>
         </div>
       </div>

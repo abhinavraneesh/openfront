@@ -11,99 +11,80 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
-import { MineExecution } from "./MineExecution";
 
-const MINE_INTERVAL = 20;
-const MAX_MINES = 10;
-
-export class MinelayerExecution implements Execution {
-  private random: PseudoRandom;
-  private minelayer: Unit;
+export class CarrierExecution implements Execution {
+  private carrier: Unit;
   private mg: Game;
   private pathfinder: WaterPathFinder;
-  private lastMineTick = 0;
+  private random: PseudoRandom;
 
   constructor(
-    private input: (UnitParams<UnitType.Minelayer> & OwnerComp) | Unit,
+    private input: (UnitParams<UnitType.Carrier> & OwnerComp) | Unit,
   ) {}
 
-  init(mg: Game, ticks: number): void {
+  init(mg: Game, _ticks: number): void {
     this.mg = mg;
     this.pathfinder = new WaterPathFinder(mg);
     this.random = new PseudoRandom(mg.ticks());
     if (isUnit(this.input)) {
-      this.minelayer = this.input;
+      this.carrier = this.input;
     } else {
       const spawn = this.input.owner.canBuild(
-        UnitType.Minelayer,
+        UnitType.Carrier,
         this.input.patrolTile,
       );
       if (spawn === false) {
-        console.warn(
-          `Failed to spawn Minelayer for ${this.input.owner.name()}`,
-        );
+        console.warn(`Failed to spawn Carrier for ${this.input.owner.name()}`);
         return;
       }
-      this.minelayer = this.input.owner.buildUnit(
-        UnitType.Minelayer,
+      this.carrier = this.input.owner.buildUnit(
+        UnitType.Carrier,
         spawn,
         this.input,
       );
     }
   }
 
-  tick(ticks: number): void {
-    if (!this.minelayer?.isActive()) return;
-    if (this.minelayer.health() <= 0) {
-      this.minelayer.delete();
+  tick(_ticks: number): void {
+    if (!this.carrier?.isActive()) return;
+    if (this.carrier.health() <= 0) {
+      this.carrier.delete();
       return;
     }
 
-    if (this.minelayer.owner().unitCount(UnitType.Port) > 0) {
-      this.minelayer.modifyHealth(1);
-    }
-
+    // Heal slightly if owner has a NavalYard (handled by NavalYardExecution)
     this.patrol();
-    this.maybeLayMine();
   }
 
-  private maybeLayMine(): void {
-    const ticks = this.mg.ticks();
-    if (ticks - this.lastMineTick < MINE_INTERVAL) return;
-    const owner = this.minelayer.owner();
-    if (owner.units(UnitType.Mine).length >= MAX_MINES) return;
-    this.lastMineTick = ticks;
-    this.mg.addExecution(new MineExecution(owner, this.minelayer.tile()));
-  }
-
-  private patrol() {
-    if (this.minelayer.targetTile() === undefined) {
-      this.minelayer.setTargetTile(this.randomTile());
-      if (this.minelayer.targetTile() === undefined) return;
+  private patrol(): void {
+    if (this.carrier.targetTile() === undefined) {
+      const tile = this.randomTile();
+      if (tile !== undefined) this.carrier.setTargetTile(tile);
     }
+    if (this.carrier.targetTile() === undefined) return;
 
     const result = this.pathfinder.next(
-      this.minelayer.tile(),
-      this.minelayer.targetTile()!,
+      this.carrier.tile(),
+      this.carrier.targetTile()!,
     );
     switch (result.status) {
       case PathStatus.COMPLETE:
-        this.minelayer.setTargetTile(undefined);
-        this.minelayer.move(result.node);
+        this.carrier.setTargetTile(undefined);
+        this.carrier.move(result.node);
         break;
       case PathStatus.NEXT:
-        this.minelayer.move(result.node);
+        this.carrier.move(result.node);
         break;
     }
   }
 
   private randomTile(allowShoreline = false): TileRef | undefined {
     const mg = this.mg;
-    const patrolTile = this.minelayer.patrolTile();
+    const patrolTile = this.carrier.patrolTile();
     if (patrolTile === undefined) return undefined;
 
     let patrolRange = mg.config().warshipPatrolRange();
-    const waterComponent = mg.getWaterComponent(this.minelayer.tile());
+    const waterComponent = mg.getWaterComponent(this.carrier.tile());
     const maxAttempts = 500;
     let attempts = 0;
     let expandCount = 0;
@@ -143,7 +124,7 @@ export class MinelayerExecution implements Execution {
   }
 
   isActive(): boolean {
-    return this.minelayer?.isActive() ?? false;
+    return this.carrier?.isActive() ?? false;
   }
 
   activeDuringSpawnPhase(): boolean {

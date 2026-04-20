@@ -84,6 +84,11 @@ export class FxLayer implements Layer {
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Minelayer:
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+      case UnitType.AttackHelicopter:
+      case UnitType.Carrier:
         this.onWarshipEvent(unit);
         break;
       case UnitType.Shell:
@@ -120,6 +125,11 @@ export class FxLayer implements Layer {
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Minelayer:
+      case UnitType.Fighter:
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+      case UnitType.AttackHelicopter:
+      case UnitType.Carrier:
         if (unit.owner() === this.game.myPlayer()) {
           this.eventBus.emit(new PlaySoundEffectEvent("build-warship"));
         }
