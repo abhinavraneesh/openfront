@@ -13,6 +13,16 @@ const trainLoadedCarriageSprite = assetUrl("sprites/trainCarriageLoaded.png");
 const trainEngineSprite = assetUrl("sprites/trainEngine.png");
 const transportShipSprite = assetUrl("sprites/transportship.png");
 const warshipSprite = assetUrl("sprites/warship.png");
+const destroyerSprite = assetUrl("sprites/destroyer.png");
+const cruiserSprite = assetUrl("sprites/cruiser.png");
+const battleshipSprite = assetUrl("sprites/battleship.png");
+const submarineSprite = assetUrl("sprites/submarine.png");
+const minelayerSprite = assetUrl("sprites/minelayer.png");
+const carrierSprite = assetUrl("sprites/carrier.png");
+const fighterSprite = assetUrl("sprites/fighter.png");
+const tacticalBomberSprite = assetUrl("sprites/tactical-bomber.png");
+const strategicBomberSprite = assetUrl("sprites/strategic-bomber.png");
+const attackHelicopterSprite = assetUrl("sprites/attack-helicopter.png");
 
 // Can't reuse TrainType because "loaded" is not a type, just an attribute
 const TrainTypeSprite = {
@@ -26,16 +36,16 @@ type TrainTypeSprite = (typeof TrainTypeSprite)[keyof typeof TrainTypeSprite];
 const SPRITE_CONFIG: Partial<Record<UnitType | TrainTypeSprite, string>> = {
   [UnitType.TransportShip]: transportShipSprite,
   [UnitType.Warship]: warshipSprite,
-  [UnitType.Destroyer]: warshipSprite,
-  [UnitType.Cruiser]: warshipSprite,
-  [UnitType.Battleship]: warshipSprite,
-  [UnitType.Submarine]: warshipSprite,
-  [UnitType.Minelayer]: warshipSprite,
-  [UnitType.Fighter]: warshipSprite,
-  [UnitType.TacticalBomber]: warshipSprite,
-  [UnitType.StrategicBomber]: warshipSprite,
-  [UnitType.AttackHelicopter]: warshipSprite,
-  [UnitType.Carrier]: warshipSprite,
+  [UnitType.Destroyer]: destroyerSprite,
+  [UnitType.Cruiser]: cruiserSprite,
+  [UnitType.Battleship]: battleshipSprite,
+  [UnitType.Submarine]: submarineSprite,
+  [UnitType.Minelayer]: minelayerSprite,
+  [UnitType.Fighter]: fighterSprite,
+  [UnitType.TacticalBomber]: tacticalBomberSprite,
+  [UnitType.StrategicBomber]: strategicBomberSprite,
+  [UnitType.AttackHelicopter]: attackHelicopterSprite,
+  [UnitType.Carrier]: carrierSprite,
   [UnitType.SAMMissile]: samMissileSprite,
   [UnitType.AtomBomb]: atomBombSprite,
   [UnitType.HydrogenBomb]: hydrogenBombSprite,

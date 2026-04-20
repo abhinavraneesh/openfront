@@ -49,20 +49,19 @@ export class TacticalBomberExecution implements Execution {
       this.bomber = this.input;
       this.homeBaseTile = this.bomber.patrolTile() ?? this.bomber.tile();
     } else {
-      this.homeBaseTile = this.input.patrolTile;
       const spawn = this.input.owner.canBuild(
         UnitType.TacticalBomber,
-        this.homeBaseTile,
+        this.input.patrolTile,
       );
       if (spawn === false) {
         console.warn(`Failed to spawn TacticalBomber`);
         return;
       }
-      this.bomber = this.input.owner.buildUnit(
-        UnitType.TacticalBomber,
-        spawn,
-        this.input,
-      );
+      this.homeBaseTile = spawn;
+      this.bomber = this.input.owner.buildUnit(UnitType.TacticalBomber, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
     const info = mg.config().unitInfo(UnitType.TacticalBomber);
     this.maxFuel = info.maxFuel ?? 60;

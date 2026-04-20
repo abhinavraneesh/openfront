@@ -25,9 +25,7 @@ export class AttackHelicopterExecution implements Execution {
   private lastAttack = 0;
 
   constructor(
-    private input:
-      | (UnitParams<UnitType.AttackHelicopter> & OwnerComp)
-      | Unit,
+    private input: (UnitParams<UnitType.AttackHelicopter> & OwnerComp) | Unit,
   ) {}
 
   init(mg: Game, ticks: number): void {
@@ -38,20 +36,19 @@ export class AttackHelicopterExecution implements Execution {
       this.heli = this.input;
       this.homeBaseTile = this.heli.patrolTile() ?? this.heli.tile();
     } else {
-      this.homeBaseTile = this.input.patrolTile;
       const spawn = this.input.owner.canBuild(
         UnitType.AttackHelicopter,
-        this.homeBaseTile,
+        this.input.patrolTile,
       );
       if (spawn === false) {
         console.warn(`Failed to spawn AttackHelicopter`);
         return;
       }
-      this.heli = this.input.owner.buildUnit(
-        UnitType.AttackHelicopter,
-        spawn,
-        this.input,
-      );
+      this.homeBaseTile = spawn;
+      this.heli = this.input.owner.buildUnit(UnitType.AttackHelicopter, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
   }
 
@@ -115,7 +112,9 @@ export class AttackHelicopterExecution implements Execution {
     }
     if (this.heli.targetTile() !== undefined) {
       this.moveToward(this.heli.targetTile()!, moveSpeed);
-      if (this.mg.manhattanDist(this.heli.tile(), this.heli.targetTile()!) === 0) {
+      if (
+        this.mg.manhattanDist(this.heli.tile(), this.heli.targetTile()!) === 0
+      ) {
         this.heli.setTargetTile(undefined);
         this.pathFinder = PathFinding.Air(this.mg);
       }

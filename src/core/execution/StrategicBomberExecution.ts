@@ -46,19 +46,19 @@ export class StrategicBomberExecution implements Execution {
       this.bomber = this.input;
       this.homeBaseTile = this.bomber.patrolTile() ?? this.bomber.tile();
     } else {
-      this.homeBaseTile = this.input.patrolTile;
       const spawn = this.input.owner.canBuild(
         UnitType.StrategicBomber,
-        this.homeBaseTile,
+        this.input.patrolTile,
       );
       if (spawn === false) {
         console.warn(`Failed to spawn StrategicBomber`);
         return;
       }
+      this.homeBaseTile = spawn;
       this.bomber = this.input.owner.buildUnit(
         UnitType.StrategicBomber,
         spawn,
-        this.input,
+        { ...this.input, patrolTile: spawn },
       );
     }
     const info = mg.config().unitInfo(UnitType.StrategicBomber);

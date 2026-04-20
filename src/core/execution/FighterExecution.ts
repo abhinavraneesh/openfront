@@ -44,20 +44,19 @@ export class FighterExecution implements Execution {
       this.fighter = this.input;
       this.homeBaseTile = this.fighter.patrolTile() ?? this.fighter.tile();
     } else {
-      this.homeBaseTile = this.input.patrolTile;
       const spawn = this.input.owner.canBuild(
         UnitType.Fighter,
-        this.homeBaseTile,
+        this.input.patrolTile,
       );
       if (spawn === false) {
         console.warn(`Failed to spawn Fighter for ${this.input.owner.name()}`);
         return;
       }
-      this.fighter = this.input.owner.buildUnit(
-        UnitType.Fighter,
-        spawn,
-        this.input,
-      );
+      this.homeBaseTile = spawn;
+      this.fighter = this.input.owner.buildUnit(UnitType.Fighter, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
     const info = mg.config().unitInfo(UnitType.Fighter);
     this.maxFuel = info.maxFuel ?? 80;
