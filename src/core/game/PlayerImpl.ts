@@ -1169,6 +1169,7 @@ export class PlayerImpl implements Player {
         return this.advancedNavalSpawn(targetTile);
       case UnitType.Shell:
       case UnitType.SAMMissile:
+      case UnitType.Mine:
         return targetTile;
       case UnitType.TransportShip:
         return canBuildTransportShip(this.mg, this, targetTile);

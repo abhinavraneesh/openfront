@@ -37,6 +37,7 @@ export const STRUCTURE_SHAPES: Partial<Record<UnitType, ShapeType>> = {
   [UnitType.FuelDepot]: "square",
   [UnitType.CoastalBattery]: "triangle",
   [UnitType.Carrier]: "cross",
+  [UnitType.Mine]: "octagon",
   [UnitType.AtomBomb]: "cross",
   [UnitType.HydrogenBomb]: "cross",
   [UnitType.MIRV]: "cross",

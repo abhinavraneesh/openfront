@@ -11,13 +11,17 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { MineExecution } from "./MineExecution";
 
-// Minelayer: no combat, patrols water. Mine-laying mechanics deferred to future phase.
+const MINE_INTERVAL = 20;
+const MAX_MINES = 10;
+
 export class MinelayerExecution implements Execution {
   private random: PseudoRandom;
   private minelayer: Unit;
   private mg: Game;
   private pathfinder: WaterPathFinder;
+  private lastMineTick = 0;
 
   constructor(
     private input: (UnitParams<UnitType.Minelayer> & OwnerComp) | Unit,
@@ -60,6 +64,16 @@ export class MinelayerExecution implements Execution {
     }
 
     this.patrol();
+    this.maybeLayMine();
+  }
+
+  private maybeLayMine(): void {
+    const ticks = this.mg.ticks();
+    if (ticks - this.lastMineTick < MINE_INTERVAL) return;
+    const owner = this.minelayer.owner();
+    if (owner.units(UnitType.Mine).length >= MAX_MINES) return;
+    this.lastMineTick = ticks;
+    this.mg.addExecution(new MineExecution(owner, this.minelayer.tile()));
   }
 
   private patrol() {

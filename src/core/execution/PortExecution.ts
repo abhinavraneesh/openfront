@@ -3,6 +3,16 @@ import { PseudoRandom } from "../PseudoRandom";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
 
+const BLOCKADE_RANGE = 30;
+const BLOCKADE_TYPES = [
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Carrier,
+] as const;
+
 export class PortExecution implements Execution {
   private active = true;
   private mg: Game;
@@ -69,6 +79,7 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
+    if (this.isBlockaded()) return false;
     const numTradeShips = this.mg.unitCount(UnitType.TradeShip);
     const spawnRate = this.mg
       .config()
@@ -81,6 +92,19 @@ export class PortExecution implements Execution {
       this.tradeShipSpawnRejections++;
     }
     return false;
+  }
+
+  private isBlockaded(): boolean {
+    const owner = this.port.owner();
+    const nearby = this.mg.nearbyUnits(
+      this.port.tile(),
+      BLOCKADE_RANGE,
+      BLOCKADE_TYPES,
+    );
+    return nearby.some(
+      ({ unit }) =>
+        unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true),
+    );
   }
 
   createStation(): void {

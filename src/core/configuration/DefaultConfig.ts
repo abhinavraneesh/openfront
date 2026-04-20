@@ -596,6 +596,14 @@ export class DefaultConfig implements Config {
           moveSpeed: 1,
         };
         break;
+      case UnitType.Mine:
+        // Internal unit spawned by Minelayer; not player-buildable
+        info = {
+          cost: this.costWrapper(() => 0, UnitType.Mine),
+          maxHealth: 1,
+          damage: 400,
+        };
+        break;
       default:
         assertNever(type);
     }

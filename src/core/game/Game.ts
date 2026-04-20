@@ -335,6 +335,8 @@ export enum UnitType {
   FuelDepot = "Fuel Depot",
   CoastalBattery = "Coastal Battery",
   Carrier = "Carrier",
+  // Phase 4 internal units (not player-buildable)
+  Mine = "Mine",
 }
 
 export enum TrainType {
@@ -413,6 +415,8 @@ export interface UnitParamsMap {
   [UnitType.Shell]: Record<string, never>;
 
   [UnitType.SAMMissile]: Record<string, never>;
+
+  [UnitType.Mine]: Record<string, never>;
 
   [UnitType.Port]: Record<string, never>;
 
