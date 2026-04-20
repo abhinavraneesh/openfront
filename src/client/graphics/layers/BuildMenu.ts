@@ -37,23 +37,20 @@ const atomBombIcon = assetUrl("images/NukeIconWhite.svg");
 const portIcon = assetUrl("images/PortIcon.svg");
 const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
-// Naval unit icons reuse the warship icon until dedicated assets are added
-const destroyerIcon = warshipIcon;
-const cruiserIcon = warshipIcon;
+const destroyerIcon = assetUrl("images/DestroyerIconWhite.svg");
+const cruiserIcon = assetUrl("images/CruiserIconWhite.svg");
 const battleshipIcon = warshipIcon;
-const submarineIcon = warshipIcon;
-const minelayerIcon = warshipIcon;
-// Air unit icons reuse existing assets until dedicated sprites are added
-const airbaseIcon = portIcon;
-const fighterIcon = warshipIcon;
-const tacticalBomberIcon = warshipIcon;
-const strategicBomberIcon = warshipIcon;
-const attackHelicopterIcon = warshipIcon;
-// Phase 3 icons reuse existing assets
-const navalYardIcon = portIcon;
-const fuelDepotIcon = portIcon;
-const coastalBatteryIcon = warshipIcon;
-const carrierIcon = warshipIcon;
+const submarineIcon = assetUrl("images/SubmarineIconWhite.svg");
+const minelayerIcon = assetUrl("images/MinelayerIconWhite.svg");
+const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
+const fighterIcon = assetUrl("images/FighterIconWhite.svg");
+const tacticalBomberIcon = assetUrl("images/TacticalBomberIconWhite.svg");
+const strategicBomberIcon = assetUrl("images/StrategicBomberIconWhite.svg");
+const attackHelicopterIcon = assetUrl("images/AttackHelicopterIconWhite.svg");
+const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
+const fuelDepotIcon = assetUrl("images/FuelDepotIconWhite.svg");
+const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
+const carrierIcon = assetUrl("images/CarrierIconWhite.svg");
 
 export interface BuildItemDisplay {
   unitType: PlayerBuildableUnitType;
@@ -66,26 +63,77 @@ export interface BuildItemDisplay {
 export const buildTable: BuildItemDisplay[][] = [
   [
     {
-      unitType: UnitType.AtomBomb,
-      icon: atomBombIcon,
-      description: "build_menu.desc.atom_bomb",
-      key: "unit_type.atom_bomb",
-      countable: false,
+      unitType: UnitType.City,
+      icon: cityIcon,
+      description: "build_menu.desc.city",
+      key: "unit_type.city",
+      countable: true,
     },
     {
-      unitType: UnitType.MIRV,
-      icon: mirvIcon,
-      description: "build_menu.desc.mirv",
-      key: "unit_type.mirv",
-      countable: false,
+      unitType: UnitType.Factory,
+      icon: factoryIcon,
+      description: "build_menu.desc.factory",
+      key: "unit_type.factory",
+      countable: true,
     },
     {
-      unitType: UnitType.HydrogenBomb,
-      icon: hydrogenBombIcon,
-      description: "build_menu.desc.hydrogen_bomb",
-      key: "unit_type.hydrogen_bomb",
-      countable: false,
+      unitType: UnitType.Port,
+      icon: portIcon,
+      description: "build_menu.desc.port",
+      key: "unit_type.port",
+      countable: true,
     },
+    {
+      unitType: UnitType.DefensePost,
+      icon: shieldIcon,
+      description: "build_menu.desc.defense_post",
+      key: "unit_type.defense_post",
+      countable: true,
+    },
+    {
+      unitType: UnitType.NavalYard,
+      icon: navalYardIcon,
+      description: "build_menu.desc.naval_yard",
+      key: "unit_type.naval_yard",
+      countable: true,
+    },
+    {
+      unitType: UnitType.Airbase,
+      icon: airbaseIcon,
+      description: "build_menu.desc.airbase",
+      key: "unit_type.airbase",
+      countable: true,
+    },
+    {
+      unitType: UnitType.FuelDepot,
+      icon: fuelDepotIcon,
+      description: "build_menu.desc.fuel_depot",
+      key: "unit_type.fuel_depot",
+      countable: true,
+    },
+    {
+      unitType: UnitType.CoastalBattery,
+      icon: coastalBatteryIcon,
+      description: "build_menu.desc.coastal_battery",
+      key: "unit_type.coastal_battery",
+      countable: true,
+    },
+    {
+      unitType: UnitType.MissileSilo,
+      icon: missileSiloIcon,
+      description: "build_menu.desc.missile_silo",
+      key: "unit_type.missile_silo",
+      countable: true,
+    },
+    {
+      unitType: UnitType.SAMLauncher,
+      icon: samlauncherIcon,
+      description: "build_menu.desc.sam_launcher",
+      key: "unit_type.sam_launcher",
+      countable: true,
+    },
+  ],
+  [
     {
       unitType: UnitType.Warship,
       icon: warshipIcon,
@@ -129,10 +177,10 @@ export const buildTable: BuildItemDisplay[][] = [
       countable: true,
     },
     {
-      unitType: UnitType.Airbase,
-      icon: airbaseIcon,
-      description: "build_menu.desc.airbase",
-      key: "unit_type.airbase",
+      unitType: UnitType.Carrier,
+      icon: carrierIcon,
+      description: "build_menu.desc.carrier",
+      key: "unit_type.carrier",
       countable: true,
     },
     {
@@ -163,75 +211,28 @@ export const buildTable: BuildItemDisplay[][] = [
       key: "unit_type.attack_helicopter",
       countable: true,
     },
+  ],
+  [
     {
-      unitType: UnitType.Carrier,
-      icon: carrierIcon,
-      description: "build_menu.desc.carrier",
-      key: "unit_type.carrier",
-      countable: true,
+      unitType: UnitType.AtomBomb,
+      icon: atomBombIcon,
+      description: "build_menu.desc.atom_bomb",
+      key: "unit_type.atom_bomb",
+      countable: false,
     },
     {
-      unitType: UnitType.NavalYard,
-      icon: navalYardIcon,
-      description: "build_menu.desc.naval_yard",
-      key: "unit_type.naval_yard",
-      countable: true,
+      unitType: UnitType.MIRV,
+      icon: mirvIcon,
+      description: "build_menu.desc.mirv",
+      key: "unit_type.mirv",
+      countable: false,
     },
     {
-      unitType: UnitType.FuelDepot,
-      icon: fuelDepotIcon,
-      description: "build_menu.desc.fuel_depot",
-      key: "unit_type.fuel_depot",
-      countable: true,
-    },
-    {
-      unitType: UnitType.CoastalBattery,
-      icon: coastalBatteryIcon,
-      description: "build_menu.desc.coastal_battery",
-      key: "unit_type.coastal_battery",
-      countable: true,
-    },
-    {
-      unitType: UnitType.Port,
-      icon: portIcon,
-      description: "build_menu.desc.port",
-      key: "unit_type.port",
-      countable: true,
-    },
-    {
-      unitType: UnitType.MissileSilo,
-      icon: missileSiloIcon,
-      description: "build_menu.desc.missile_silo",
-      key: "unit_type.missile_silo",
-      countable: true,
-    },
-    {
-      unitType: UnitType.SAMLauncher,
-      icon: samlauncherIcon,
-      description: "build_menu.desc.sam_launcher",
-      key: "unit_type.sam_launcher",
-      countable: true,
-    },
-    {
-      unitType: UnitType.DefensePost,
-      icon: shieldIcon,
-      description: "build_menu.desc.defense_post",
-      key: "unit_type.defense_post",
-      countable: true,
-    },
-    {
-      unitType: UnitType.City,
-      icon: cityIcon,
-      description: "build_menu.desc.city",
-      key: "unit_type.city",
-      countable: true,
-    },
-    {
-      unitType: UnitType.Factory,
-      icon: factoryIcon,
-      description: "build_menu.desc.factory",
-      key: "unit_type.factory",
-      countable: true,
+      unitType: UnitType.HydrogenBomb,
+      icon: hydrogenBombIcon,
+      description: "build_menu.desc.hydrogen_bomb",
+      key: "unit_type.hydrogen_bomb",
+      countable: false,
     },
   ],
 ];

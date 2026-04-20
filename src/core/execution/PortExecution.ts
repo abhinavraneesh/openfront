@@ -1,4 +1,4 @@
-import { Execution, Game, Unit, UnitType } from "../game/Game";
+import { Execution, Game, MessageType, Unit, UnitType } from "../game/Game";
 import { PseudoRandom } from "../PseudoRandom";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
@@ -20,6 +20,7 @@ export class PortExecution implements Execution {
   private random: PseudoRandom;
   private checkOffset: number;
   private tradeShipSpawnRejections = 0;
+  private blockadeNotifiedAt = -Infinity;
 
   constructor(port: Unit) {
     this.port = port;
@@ -79,7 +80,18 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
-    if (this.isBlockaded()) return false;
+    if (this.isBlockaded()) {
+      const tick = this.mg.ticks();
+      if (tick - this.blockadeNotifiedAt > 600) {
+        this.blockadeNotifiedAt = tick;
+        this.mg.displayMessage(
+          "events_display.port_blockaded",
+          MessageType.PORT_BLOCKADED,
+          this.port.owner().id(),
+        );
+      }
+      return false;
+    }
     const numTradeShips = this.mg.unitCount(UnitType.TradeShip);
     const spawnRate = this.mg
       .config()

@@ -1107,6 +1107,7 @@ export enum MessageType {
   RECEIVED_TROOPS_FROM_PLAYER,
   CHAT,
   RENEW_ALLIANCE,
+  PORT_BLOCKADED,
 }
 
 // Message categories used for filtering events in the EventsDisplay
@@ -1145,6 +1146,7 @@ export const MESSAGE_TYPE_CATEGORIES: Record<MessageType, MessageCategory> = {
   [MessageType.SENT_TROOPS_TO_PLAYER]: MessageCategory.TRADE,
   [MessageType.RECEIVED_TROOPS_FROM_PLAYER]: MessageCategory.TRADE,
   [MessageType.CHAT]: MessageCategory.CHAT,
+  [MessageType.PORT_BLOCKADED]: MessageCategory.ATTACK,
 } as const;
 
 /**
