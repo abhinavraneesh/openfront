@@ -102,7 +102,8 @@ export class TeamStats extends LitElement implements Layer {
               p.totalUnitLevels(UnitType.Cruiser) +
               p.totalUnitLevels(UnitType.Battleship) +
               p.totalUnitLevels(UnitType.Submarine) +
-              p.totalUnitLevels(UnitType.Minelayer);
+              p.totalUnitLevels(UnitType.Minelayer) +
+              p.totalUnitLevels(UnitType.Carrier);
             totalCities += p.totalUnitLevels(UnitType.City);
           }
         }
