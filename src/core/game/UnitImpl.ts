@@ -340,7 +340,12 @@ export class UnitImpl implements Unit {
   }
 
   private displayMessageOnDeleted(): void {
-    if (this._type === UnitType.MIRVWarhead) {
+    if (
+      this._type === UnitType.MIRVWarhead ||
+      this._type === UnitType.Mine ||
+      this._type === UnitType.Shell ||
+      this._type === UnitType.SAMMissile
+    ) {
       return;
     }
 
