@@ -557,8 +557,16 @@ export class StructureIconsLayer implements Layer {
   private resolveGhostRangeLevel(
     buildableUnit: BuildableUnit,
   ): number | undefined {
-    if (buildableUnit.type !== UnitType.SAMLauncher) {
+    if (
+      buildableUnit.type !== UnitType.SAMLauncher &&
+      buildableUnit.type !== UnitType.CoastalBattery &&
+      buildableUnit.type !== UnitType.DefensePost &&
+      buildableUnit.type !== UnitType.Factory
+    ) {
       return undefined;
+    }
+    if (buildableUnit.type !== UnitType.SAMLauncher) {
+      return 1;
     }
     if (buildableUnit.canUpgrade !== false) {
       const existing = this.game.unit(buildableUnit.canUpgrade);

@@ -490,6 +490,10 @@ export class SpriteFactory {
       case UnitType.DefensePost:
         radius = this.game.config().defensePostRange();
         break;
+      case UnitType.CoastalBattery:
+        radius =
+          this.game.config().unitInfo(UnitType.CoastalBattery).range ?? 80;
+        break;
       case UnitType.AtomBomb:
         radius = this.game.config().nukeMagnitudes(UnitType.AtomBomb).outer;
         break;

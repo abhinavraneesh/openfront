@@ -1078,6 +1078,70 @@ export class HelpModal extends BaseModal {
                       ${translateText("help_modal.build_mirv_desc")}
                     </td>
                   </tr>
+                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
+                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
+                      ${translateText("help_modal.build_naval_yard")}
+                    </td>
+                    <td class="py-3 border-b border-white/5">
+                      <img
+                        src=${assetUrl("images/NavalYardIconWhite.svg")}
+                        class="w-8 h-8 scale-75 origin-left"
+                      />
+                    </td>
+                    <td
+                      class="py-3 border-b border-white/5 text-white/60 text-sm"
+                    >
+                      ${translateText("help_modal.build_naval_yard_desc")}
+                    </td>
+                  </tr>
+                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
+                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
+                      ${translateText("help_modal.build_airbase")}
+                    </td>
+                    <td class="py-3 border-b border-white/5">
+                      <img
+                        src=${assetUrl("images/AirbaseIconWhite.svg")}
+                        class="w-8 h-8 scale-75 origin-left"
+                      />
+                    </td>
+                    <td
+                      class="py-3 border-b border-white/5 text-white/60 text-sm"
+                    >
+                      ${translateText("help_modal.build_airbase_desc")}
+                    </td>
+                  </tr>
+                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
+                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
+                      ${translateText("help_modal.build_coastal_battery")}
+                    </td>
+                    <td class="py-3 border-b border-white/5">
+                      <img
+                        src=${assetUrl("images/CoastalBatteryIconWhite.svg")}
+                        class="w-8 h-8 scale-75 origin-left"
+                      />
+                    </td>
+                    <td
+                      class="py-3 border-b border-white/5 text-white/60 text-sm"
+                    >
+                      ${translateText("help_modal.build_coastal_battery_desc")}
+                    </td>
+                  </tr>
+                  <tr class="bg-white/5 hover:bg-white/10 transition-colors">
+                    <td class="py-3 pl-4 border-b border-white/5 font-medium">
+                      ${translateText("help_modal.build_carrier")}
+                    </td>
+                    <td class="py-3 border-b border-white/5">
+                      <img
+                        src=${assetUrl("images/CarrierIconWhite.svg")}
+                        class="w-8 h-8 scale-75 origin-left"
+                      />
+                    </td>
+                    <td
+                      class="py-3 border-b border-white/5 text-white/60 text-sm"
+                    >
+                      ${translateText("help_modal.build_carrier_desc")}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>

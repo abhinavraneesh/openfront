@@ -535,6 +535,46 @@ export class UserSettingModal extends BaseModal {
         @change=${this.handleKeybindChange}
       ></setting-keybind>
 
+      <setting-keybind
+        action="buildNavalYard"
+        label=${translateText("user_setting.build_naval_yard")}
+        description=${translateText("user_setting.build_naval_yard_desc")}
+        defaultKey="KeyN"
+        .value=${this.getKeyValue("buildNavalYard")}
+        .display=${this.getKeyChar("buildNavalYard")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildAirbase"
+        label=${translateText("user_setting.build_airbase")}
+        description=${translateText("user_setting.build_airbase_desc")}
+        defaultKey="KeyI"
+        .value=${this.getKeyValue("buildAirbase")}
+        .display=${this.getKeyChar("buildAirbase")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildFuelDepot"
+        label=${translateText("user_setting.build_fuel_depot")}
+        description=${translateText("user_setting.build_fuel_depot_desc")}
+        defaultKey="KeyF"
+        .value=${this.getKeyValue("buildFuelDepot")}
+        .display=${this.getKeyChar("buildFuelDepot")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
+      <setting-keybind
+        action="buildCoastalBattery"
+        label=${translateText("user_setting.build_coastal_battery")}
+        description=${translateText("user_setting.build_coastal_battery_desc")}
+        defaultKey="KeyL"
+        .value=${this.getKeyValue("buildCoastalBattery")}
+        .display=${this.getKeyChar("buildCoastalBattery")}
+        @change=${this.handleKeybindChange}
+      ></setting-keybind>
+
       <h2
         class="text-blue-200 text-xl font-bold mt-8 mb-3 border-b border-white/10 pb-2"
       >
