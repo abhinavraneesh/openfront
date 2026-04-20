@@ -163,10 +163,10 @@ export class UnitDisplay extends LitElement implements Layer {
     }
 
     return html`
-      <div class="border-t border-white/10 p-0.5 w-full">
-        <div
-          class="grid grid-rows-1 auto-cols-max grid-flow-col gap-0.5 w-fit mx-auto"
-        >
+      <div
+        class="border-t border-white/10 p-0.5 w-full max-w-full overflow-x-auto"
+      >
+        <div class="flex flex-wrap justify-center gap-0.5 w-full">
           ${this.renderUnitItem(
             cityIcon,
             this._cities,
