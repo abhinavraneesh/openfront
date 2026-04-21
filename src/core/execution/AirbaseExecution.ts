@@ -13,7 +13,12 @@ export class AirbaseExecution implements Execution {
   tick(_ticks: number): void {
     if (!this.airbase.isActive()) {
       this.active = false;
+      return;
     }
+    if (this.airbase.isUnderConstruction()) return;
+
+    // Passive income from air operations
+    this.airbase.owner().addGold(10n);
   }
 
   isActive(): boolean {
