@@ -504,8 +504,8 @@ export class DefaultConfig implements Config {
         info = {
           cost: this.costWrapper(() => 250_000, UnitType.Submarine),
           maxHealth: 700,
-          damage: 300,
-          attackRate: 20,
+          damage: 400,
+          attackRate: 40,
           range: 90,
         };
         break;
@@ -538,7 +538,6 @@ export class DefaultConfig implements Config {
           cost: this.costWrapper(() => 600_000, UnitType.TacticalBomber),
           maxHealth: 400,
           damage: 600,
-          attackRate: 0,
           range: 80,
           moveSpeed: 2,
           maxFuel: 60,

@@ -72,19 +72,17 @@ export class CruiserExecution implements Execution {
     const range = info.range ?? 110;
     const owner = this.cruiser.owner();
 
-    const ships = this.mg.nearbyUnits(
-      this.cruiser.tile()!,
-      range,
-      [
-        UnitType.TransportShip,
-        UnitType.Warship,
-        UnitType.TradeShip,
-        UnitType.Destroyer,
-        UnitType.Submarine,
-        UnitType.Battleship,
-        UnitType.Minelayer,
-      ],
-    );
+    const ships = this.mg.nearbyUnits(this.cruiser.tile()!, range, [
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+      UnitType.Warship,
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Battleship,
+      UnitType.Submarine,
+      UnitType.Minelayer,
+      UnitType.Carrier,
+    ]);
 
     let best: Unit | undefined;
     let bestDist = Infinity;

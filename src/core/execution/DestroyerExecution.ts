@@ -75,19 +75,17 @@ export class DestroyerExecution implements Execution {
     const range = info.range ?? 100;
     const owner = this.destroyer.owner();
 
-    const ships = this.mg.nearbyUnits(
-      this.destroyer.tile()!,
-      range,
-      [
-        UnitType.TransportShip,
-        UnitType.Warship,
-        UnitType.TradeShip,
-        UnitType.Submarine,
-        UnitType.Cruiser,
-        UnitType.Battleship,
-        UnitType.Minelayer,
-      ],
-    );
+    const ships = this.mg.nearbyUnits(this.destroyer.tile()!, range, [
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+      UnitType.Warship,
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Battleship,
+      UnitType.Submarine,
+      UnitType.Minelayer,
+      UnitType.Carrier,
+    ]);
 
     let best: Unit | undefined;
     let bestDist = Infinity;
@@ -171,10 +169,7 @@ export class DestroyerExecution implements Execution {
         this.random.nextInt(-patrolRange / 2, patrolRange / 2);
       if (!mg.isValidCoord(x, y)) continue;
       const tile = mg.ref(x, y);
-      if (
-        !mg.isWater(tile) ||
-        (!allowShoreline && mg.isShoreline(tile))
-      ) {
+      if (!mg.isWater(tile) || (!allowShoreline && mg.isShoreline(tile))) {
         if (++attempts >= maxAttempts) {
           expandCount++;
           attempts = 0;

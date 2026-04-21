@@ -83,12 +83,14 @@ export class SubmarineExecution implements Execution {
 
     const allShipTypes = [
       UnitType.TransportShip,
-      UnitType.Warship,
       UnitType.TradeShip,
+      UnitType.Warship,
       UnitType.Destroyer,
       UnitType.Cruiser,
       UnitType.Battleship,
+      UnitType.Submarine,
       UnitType.Minelayer,
+      UnitType.Carrier,
     ];
 
     const ships = this.mg.nearbyUnits(
