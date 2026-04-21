@@ -74,19 +74,17 @@ export class BattleshipExecution implements Execution {
     const range = info.range ?? 150;
     const owner = this.battleship.owner();
 
-    const ships = this.mg.nearbyUnits(
-      this.battleship.tile()!,
-      range,
-      [
-        UnitType.TransportShip,
-        UnitType.Warship,
-        UnitType.TradeShip,
-        UnitType.Destroyer,
-        UnitType.Cruiser,
-        UnitType.Submarine,
-        UnitType.Minelayer,
-      ],
-    );
+    const ships = this.mg.nearbyUnits(this.battleship.tile()!, range, [
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+      UnitType.Warship,
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Battleship,
+      UnitType.Submarine,
+      UnitType.Minelayer,
+      UnitType.Carrier,
+    ]);
 
     let best: Unit | undefined;
     let bestDist = Infinity;

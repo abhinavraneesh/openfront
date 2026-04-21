@@ -29,6 +29,19 @@ enum Relationship {
   Enemy,
 }
 
+const SPRITE_BASE_PLATE_TYPES = new Set([
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Minelayer,
+  UnitType.Carrier,
+  UnitType.Fighter,
+  UnitType.TacticalBomber,
+  UnitType.StrategicBomber,
+  UnitType.AttackHelicopter,
+]);
+
 export class UnitLayer implements Layer {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
@@ -634,6 +647,16 @@ export class UnitLayer implements Layer {
       if (!targetable) {
         this.context.save();
         this.context.globalAlpha = 0.5;
+      }
+      if (SPRITE_BASE_PLATE_TYPES.has(unit.type())) {
+        const plateColor = alternateViewColor ?? unit.owner().territoryColor();
+        const r = Math.ceil(Math.max(sprite.width, sprite.height) / 2) + 1;
+        this.context.save();
+        this.context.beginPath();
+        this.context.arc(x, y, r, 0, Math.PI * 2);
+        this.context.fillStyle = plateColor.alpha(0.75).toRgbString();
+        this.context.fill();
+        this.context.restore();
       }
       this.context.drawImage(
         sprite,
