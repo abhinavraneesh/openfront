@@ -29,6 +29,11 @@ enum Relationship {
   Enemy,
 }
 
+// Fixed draw size in world-units for new PNG sprites (matches warship.png scale)
+const SPRITE_WORLD_SIZE = 11;
+// Plate radius in world-units — just enough to peek out from under the sprite
+const SPRITE_PLATE_RADIUS = 7;
+
 const SPRITE_BASE_PLATE_TYPES = new Set([
   UnitType.Destroyer,
   UnitType.Cruiser,
@@ -648,22 +653,23 @@ export class UnitLayer implements Layer {
         this.context.save();
         this.context.globalAlpha = 0.5;
       }
-      if (SPRITE_BASE_PLATE_TYPES.has(unit.type())) {
+      const isNewSprite = SPRITE_BASE_PLATE_TYPES.has(unit.type());
+      const drawSize = isNewSprite ? SPRITE_WORLD_SIZE : sprite.width;
+      if (isNewSprite) {
         const plateColor = alternateViewColor ?? unit.owner().territoryColor();
-        const r = Math.ceil(Math.max(sprite.width, sprite.height) / 2) + 1;
         this.context.save();
         this.context.beginPath();
-        this.context.arc(x, y, r, 0, Math.PI * 2);
+        this.context.arc(x, y, SPRITE_PLATE_RADIUS, 0, Math.PI * 2);
         this.context.fillStyle = plateColor.alpha(0.75).toRgbString();
         this.context.fill();
         this.context.restore();
       }
       this.context.drawImage(
         sprite,
-        Math.round(x - sprite.width / 2),
-        Math.round(y - sprite.height / 2),
-        sprite.width,
-        sprite.width,
+        Math.round(x - drawSize / 2),
+        Math.round(y - drawSize / 2),
+        drawSize,
+        drawSize,
       );
       if (!targetable) {
         this.context.restore();
