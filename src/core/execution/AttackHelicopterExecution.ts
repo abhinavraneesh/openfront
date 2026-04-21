@@ -80,7 +80,13 @@ export class AttackHelicopterExecution implements Execution {
         this.mg.ticks() - this.lastAttack > attackRate
       ) {
         this.lastAttack = this.mg.ticks();
-        target.modifyHealth(-damage, this.heli.owner());
+        const multiplier = this.mg
+          .config()
+          .combatMultiplier(UnitType.AttackHelicopter, target.type());
+        target.modifyHealth(
+          -Math.round(damage * multiplier),
+          this.heli.owner(),
+        );
       }
     } else {
       this.heli.setTargetUnit(undefined);

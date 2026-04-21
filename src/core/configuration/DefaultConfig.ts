@@ -1158,4 +1158,72 @@ export class DefaultConfig implements Config {
   allianceExtensionPromptOffset(): number {
     return 300; // 30 seconds before expiration
   }
+
+  shoreBombardmentRange(): number {
+    return 40;
+  }
+
+  combatMultiplier(attacker: UnitType, defender: UnitType): number {
+    const navalShips = new Set([
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Battleship,
+      UnitType.Submarine,
+      UnitType.Minelayer,
+      UnitType.Carrier,
+      UnitType.Warship,
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+    ]);
+    const capitalShips = new Set([
+      UnitType.Battleship,
+      UnitType.Carrier,
+      UnitType.Warship,
+    ]);
+    const airUnits = new Set([
+      UnitType.Fighter,
+      UnitType.TacticalBomber,
+      UnitType.StrategicBomber,
+      UnitType.AttackHelicopter,
+    ]);
+    const landStructures = new Set([
+      UnitType.DefensePost,
+      UnitType.City,
+      UnitType.Port,
+      UnitType.Factory,
+      UnitType.MissileSilo,
+      UnitType.SAMLauncher,
+      UnitType.NavalYard,
+      UnitType.Airbase,
+      UnitType.CoastalBattery,
+      UnitType.FuelDepot,
+    ]);
+
+    // Destroyer depth charges are highly effective vs submarines
+    if (attacker === UnitType.Destroyer && defender === UnitType.Submarine)
+      return 2.0;
+
+    // Submarines ambush capital ships
+    if (attacker === UnitType.Submarine && capitalShips.has(defender))
+      return 2.0;
+
+    // Cruiser AA fire vs aircraft
+    if (attacker === UnitType.Cruiser && airUnits.has(defender)) return 2.0;
+
+    // Air units are strong vs naval and land targets
+    if (
+      airUnits.has(attacker) &&
+      (navalShips.has(defender) || landStructures.has(defender))
+    )
+      return 1.5;
+
+    // Coastal batteries punish ships that get close
+    if (attacker === UnitType.CoastalBattery && navalShips.has(defender))
+      return 1.5;
+
+    // Naval ships bombard shore structures effectively
+    if (navalShips.has(attacker) && landStructures.has(defender)) return 1.5;
+
+    return 1.0;
+  }
 }
