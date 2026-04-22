@@ -19,6 +19,7 @@ export class CruiserExecution implements Execution {
   private mg: Game;
   private pathfinder: WaterPathFinder;
   private lastAttack = 0;
+  private lastAAAttack = 0;
   private alreadySentShell = new Set<Unit>();
 
   constructor(
@@ -65,14 +66,17 @@ export class CruiserExecution implements Execution {
     if (this.cruiser.targetUnit() !== undefined) {
       this.shootTarget();
     }
+    this.fireAA();
   }
 
   private findTarget(): Unit | undefined {
-    const info = this.mg.config().unitInfo(UnitType.Cruiser);
+    const config = this.mg.config();
+    const info = config.unitInfo(UnitType.Cruiser);
     const range = info.range ?? 110;
+    const shoreRange = config.shoreBombardmentRange();
     const owner = this.cruiser.owner();
 
-    const ships = this.mg.nearbyUnits(this.cruiser.tile()!, range, [
+    const navalTargets = this.mg.nearbyUnits(this.cruiser.tile()!, range, [
       UnitType.TransportShip,
       UnitType.TradeShip,
       UnitType.Warship,
@@ -84,10 +88,20 @@ export class CruiserExecution implements Execution {
       UnitType.Carrier,
     ]);
 
+    const shoreTargets = this.mg.nearbyUnits(this.cruiser.tile()!, shoreRange, [
+      UnitType.DefensePost,
+      UnitType.CoastalBattery,
+      UnitType.Port,
+      UnitType.NavalYard,
+      UnitType.City,
+      UnitType.Factory,
+      UnitType.SAMLauncher,
+    ]);
+
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of ships) {
+    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
       if (
         unit.owner() === owner ||
         unit === this.cruiser ||
@@ -96,9 +110,12 @@ export class CruiserExecution implements Execution {
       ) {
         continue;
       }
-      if (distSquared < bestDist) {
+      const adjustedDist = navalTargets.some((n) => n.unit === unit)
+        ? distSquared
+        : distSquared * 4;
+      if (adjustedDist < bestDist) {
         best = unit;
-        bestDist = distSquared;
+        bestDist = adjustedDist;
       }
     }
     return best;
@@ -109,18 +126,56 @@ export class CruiserExecution implements Execution {
     const attackRate = info.attackRate ?? 20;
     if (this.mg.ticks() - this.lastAttack > attackRate) {
       this.lastAttack = this.mg.ticks();
+      const target = this.cruiser.targetUnit()!;
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.Cruiser, target.type());
       this.mg.addExecution(
         new NavalShellExecution(
           this.cruiser.tile(),
           this.cruiser.owner(),
           this.cruiser,
-          this.cruiser.targetUnit()!,
-          info.damage ?? 200,
+          target,
+          Math.round((info.damage ?? 200) * multiplier),
         ),
       );
-      if (!this.cruiser.targetUnit()!.hasHealth()) {
-        this.alreadySentShell.add(this.cruiser.targetUnit()!);
+      if (!target.hasHealth()) {
+        this.alreadySentShell.add(target);
         this.cruiser.setTargetUnit(undefined);
+      }
+    }
+  }
+
+  private fireAA(): void {
+    const AA_RANGE = 70;
+    const AA_RATE = 10;
+    const AA_DAMAGE = 80;
+    if (this.mg.ticks() - this.lastAAAttack <= AA_RATE) return;
+
+    const owner = this.cruiser.owner();
+    const airUnits = this.mg.nearbyUnits(this.cruiser.tile()!, AA_RANGE, [
+      UnitType.Fighter,
+      UnitType.TacticalBomber,
+      UnitType.StrategicBomber,
+      UnitType.AttackHelicopter,
+    ]);
+
+    for (const { unit } of airUnits) {
+      if (unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true)) {
+        this.lastAAAttack = this.mg.ticks();
+        const multiplier = this.mg
+          .config()
+          .combatMultiplier(UnitType.Cruiser, unit.type());
+        this.mg.addExecution(
+          new NavalShellExecution(
+            this.cruiser.tile(),
+            this.cruiser.owner(),
+            this.cruiser,
+            unit,
+            Math.round(AA_DAMAGE * multiplier),
+          ),
+        );
+        return;
       }
     }
   }

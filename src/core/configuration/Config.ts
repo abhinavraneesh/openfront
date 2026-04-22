@@ -176,6 +176,8 @@ export interface Config {
   structureMinDist(): number;
   isReplay(): boolean;
   allianceExtensionPromptOffset(): number;
+  combatMultiplier(attacker: UnitType, defender: UnitType): number;
+  shoreBombardmentRange(): number;
 }
 
 export interface Theme {

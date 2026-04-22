@@ -132,17 +132,21 @@ export class SubmarineExecution implements Execution {
     const attackRate = info.attackRate ?? 20;
     if (this.mg.ticks() - this.lastAttack > attackRate) {
       this.lastAttack = this.mg.ticks();
+      const target = this.submarine.targetUnit()!;
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.Submarine, target.type());
       this.mg.addExecution(
         new NavalShellExecution(
           this.submarine.tile(),
           this.submarine.owner(),
           this.submarine,
-          this.submarine.targetUnit()!,
-          info.damage ?? 300,
+          target,
+          Math.round((info.damage ?? 400) * multiplier),
         ),
       );
-      if (!this.submarine.targetUnit()!.hasHealth()) {
-        this.alreadySentShell.add(this.submarine.targetUnit()!);
+      if (!target.hasHealth()) {
+        this.alreadySentShell.add(target);
         this.submarine.setTargetUnit(undefined);
       }
     }

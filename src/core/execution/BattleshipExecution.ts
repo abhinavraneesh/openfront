@@ -70,11 +70,13 @@ export class BattleshipExecution implements Execution {
   }
 
   private findTarget(): Unit | undefined {
-    const info = this.mg.config().unitInfo(UnitType.Battleship);
+    const config = this.mg.config();
+    const info = config.unitInfo(UnitType.Battleship);
     const range = info.range ?? 150;
+    const shoreRange = config.shoreBombardmentRange();
     const owner = this.battleship.owner();
 
-    const ships = this.mg.nearbyUnits(this.battleship.tile()!, range, [
+    const navalTargets = this.mg.nearbyUnits(this.battleship.tile()!, range, [
       UnitType.TransportShip,
       UnitType.TradeShip,
       UnitType.Warship,
@@ -86,10 +88,26 @@ export class BattleshipExecution implements Execution {
       UnitType.Carrier,
     ]);
 
+    const shoreTargets = this.mg.nearbyUnits(
+      this.battleship.tile()!,
+      shoreRange,
+      [
+        UnitType.DefensePost,
+        UnitType.CoastalBattery,
+        UnitType.Port,
+        UnitType.NavalYard,
+        UnitType.City,
+        UnitType.Factory,
+        UnitType.SAMLauncher,
+        UnitType.Airbase,
+        UnitType.MissileSilo,
+      ],
+    );
+
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of ships) {
+    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
       if (
         unit.owner() === owner ||
         unit === this.battleship ||
@@ -98,9 +116,12 @@ export class BattleshipExecution implements Execution {
       ) {
         continue;
       }
-      if (distSquared < bestDist) {
+      const adjustedDist = navalTargets.some((n) => n.unit === unit)
+        ? distSquared
+        : distSquared * 4;
+      if (adjustedDist < bestDist) {
         best = unit;
-        bestDist = distSquared;
+        bestDist = adjustedDist;
       }
     }
     return best;
@@ -111,17 +132,21 @@ export class BattleshipExecution implements Execution {
     const attackRate = info.attackRate ?? 25;
     if (this.mg.ticks() - this.lastAttack > attackRate) {
       this.lastAttack = this.mg.ticks();
+      const target = this.battleship.targetUnit()!;
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.Battleship, target.type());
       this.mg.addExecution(
         new NavalShellExecution(
           this.battleship.tile(),
           this.battleship.owner(),
           this.battleship,
-          this.battleship.targetUnit()!,
-          info.damage ?? 400,
+          target,
+          Math.round((info.damage ?? 400) * multiplier),
         ),
       );
-      if (!this.battleship.targetUnit()!.hasHealth()) {
-        this.alreadySentShell.add(this.battleship.targetUnit()!);
+      if (!target.hasHealth()) {
+        this.alreadySentShell.add(target);
         this.battleship.setTargetUnit(undefined);
       }
     }

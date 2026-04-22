@@ -207,7 +207,7 @@ export class DefaultConfig implements Config {
     return 120;
   }
   SiloCooldown(): number {
-    return 75;
+    return 150;
   }
 
   defensePostRange(): number {
@@ -385,12 +385,12 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.AtomBomb:
         info = {
-          cost: this.costWrapper(() => 750_000, UnitType.AtomBomb),
+          cost: this.costWrapper(() => 1_000_000, UnitType.AtomBomb),
         };
         break;
       case UnitType.HydrogenBomb:
         info = {
-          cost: this.costWrapper(() => 5_000_000, UnitType.HydrogenBomb),
+          cost: this.costWrapper(() => 8_000_000, UnitType.HydrogenBomb),
         };
         break;
       case UnitType.MIRV:
@@ -480,6 +480,7 @@ export class DefaultConfig implements Config {
           damage: 120,
           attackRate: 15,
           range: 100,
+          constructionDuration: this.instantBuild() ? 0 : 20,
         };
         break;
       case UnitType.Cruiser:
@@ -489,6 +490,7 @@ export class DefaultConfig implements Config {
           damage: 200,
           attackRate: 20,
           range: 110,
+          constructionDuration: this.instantBuild() ? 0 : 30,
         };
         break;
       case UnitType.Battleship:
@@ -498,6 +500,7 @@ export class DefaultConfig implements Config {
           damage: 400,
           attackRate: 25,
           range: 150,
+          constructionDuration: this.instantBuild() ? 0 : 50,
         };
         break;
       case UnitType.Submarine:
@@ -507,12 +510,14 @@ export class DefaultConfig implements Config {
           damage: 400,
           attackRate: 40,
           range: 90,
+          constructionDuration: this.instantBuild() ? 0 : 40,
         };
         break;
       case UnitType.Minelayer:
         info = {
           cost: this.costWrapper(() => 80_000, UnitType.Minelayer),
           maxHealth: 300,
+          constructionDuration: this.instantBuild() ? 0 : 15,
         };
         break;
       case UnitType.Airbase:
@@ -531,6 +536,7 @@ export class DefaultConfig implements Config {
           range: 50,
           moveSpeed: 4,
           maxFuel: 80,
+          constructionDuration: this.instantBuild() ? 0 : 20,
         };
         break;
       case UnitType.TacticalBomber:
@@ -541,6 +547,7 @@ export class DefaultConfig implements Config {
           range: 80,
           moveSpeed: 2,
           maxFuel: 60,
+          constructionDuration: this.instantBuild() ? 0 : 30,
         };
         break;
       case UnitType.StrategicBomber:
@@ -552,6 +559,7 @@ export class DefaultConfig implements Config {
           range: 120,
           moveSpeed: 1,
           maxFuel: 120,
+          constructionDuration: this.instantBuild() ? 0 : 50,
         };
         break;
       case UnitType.AttackHelicopter:
@@ -562,20 +570,21 @@ export class DefaultConfig implements Config {
           attackRate: 10,
           range: 40,
           moveSpeed: 2,
+          constructionDuration: this.instantBuild() ? 0 : 20,
         };
         break;
       case UnitType.NavalYard:
         info = {
           cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
           maxHealth: 1200,
-          constructionDuration: 40,
+          constructionDuration: this.instantBuild() ? 0 : 40,
         };
         break;
       case UnitType.FuelDepot:
         info = {
           cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
           maxHealth: 600,
-          constructionDuration: 20,
+          constructionDuration: this.instantBuild() ? 0 : 20,
         };
         break;
       case UnitType.CoastalBattery:
@@ -585,7 +594,7 @@ export class DefaultConfig implements Config {
           damage: 250,
           attackRate: 30,
           range: 80,
-          constructionDuration: 25,
+          constructionDuration: this.instantBuild() ? 0 : 25,
         };
         break;
       case UnitType.Carrier:
@@ -593,6 +602,7 @@ export class DefaultConfig implements Config {
           cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
           maxHealth: 3000,
           moveSpeed: 1,
+          constructionDuration: this.instantBuild() ? 0 : 100,
         };
         break;
       case UnitType.Mine:
@@ -1157,5 +1167,73 @@ export class DefaultConfig implements Config {
 
   allianceExtensionPromptOffset(): number {
     return 300; // 30 seconds before expiration
+  }
+
+  shoreBombardmentRange(): number {
+    return 40;
+  }
+
+  combatMultiplier(attacker: UnitType, defender: UnitType): number {
+    const navalShips = new Set([
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Battleship,
+      UnitType.Submarine,
+      UnitType.Minelayer,
+      UnitType.Carrier,
+      UnitType.Warship,
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+    ]);
+    const capitalShips = new Set([
+      UnitType.Battleship,
+      UnitType.Carrier,
+      UnitType.Warship,
+    ]);
+    const airUnits = new Set([
+      UnitType.Fighter,
+      UnitType.TacticalBomber,
+      UnitType.StrategicBomber,
+      UnitType.AttackHelicopter,
+    ]);
+    const landStructures = new Set([
+      UnitType.DefensePost,
+      UnitType.City,
+      UnitType.Port,
+      UnitType.Factory,
+      UnitType.MissileSilo,
+      UnitType.SAMLauncher,
+      UnitType.NavalYard,
+      UnitType.Airbase,
+      UnitType.CoastalBattery,
+      UnitType.FuelDepot,
+    ]);
+
+    // Destroyer depth charges are highly effective vs submarines
+    if (attacker === UnitType.Destroyer && defender === UnitType.Submarine)
+      return 2.0;
+
+    // Submarines ambush capital ships
+    if (attacker === UnitType.Submarine && capitalShips.has(defender))
+      return 2.0;
+
+    // Cruiser AA fire vs aircraft
+    if (attacker === UnitType.Cruiser && airUnits.has(defender)) return 2.0;
+
+    // Air units are strong vs naval and land targets
+    if (
+      airUnits.has(attacker) &&
+      (navalShips.has(defender) || landStructures.has(defender))
+    )
+      return 1.5;
+
+    // Coastal batteries punish ships that get close
+    if (attacker === UnitType.CoastalBattery && navalShips.has(defender))
+      return 1.5;
+
+    // Naval ships bombard shore structures effectively
+    if (navalShips.has(attacker) && landStructures.has(defender)) return 1.5;
+
+    return 1.0;
   }
 }

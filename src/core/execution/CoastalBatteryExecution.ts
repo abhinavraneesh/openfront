@@ -47,13 +47,16 @@ export class CoastalBatteryExecution implements Execution {
     if (!target) return;
 
     this.lastAttack = this.mg.ticks();
+    const multiplier = this.mg
+      .config()
+      .combatMultiplier(UnitType.CoastalBattery, target.type());
     this.mg.addExecution(
       new NavalShellExecution(
         this.battery.tile(),
         this.battery.owner(),
         this.battery,
         target,
-        damage,
+        Math.round(damage * multiplier),
       ),
     );
   }

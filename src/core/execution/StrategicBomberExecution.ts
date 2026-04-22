@@ -213,9 +213,53 @@ export class StrategicBomberExecution implements Execution {
 
   private doAttack(damage: number): void {
     const target = this.bomber.targetUnit();
-    if (target?.isActive()) {
-      target.modifyHealth(-damage, this.bomber.owner());
+    if (!target?.isActive()) {
+      this.bomber.setTargetUnit(undefined);
+      this.phase = "returning";
+      this.pathFinder = PathFinding.Air(this.mg);
+      return;
     }
+
+    // Cluster payload: damage primary target + splash nearby enemy units
+    const CLUSTER_RADIUS = 15;
+    const MAX_SPLASH_TARGETS = 5;
+    const owner = this.bomber.owner();
+
+    const allNearby = [
+      ...this.mg.nearbyUnits(target.tile(), CLUSTER_RADIUS, BUILDING_TARGETS),
+      ...this.mg.nearbyUnits(target.tile(), CLUSTER_RADIUS, [
+        UnitType.Warship,
+        UnitType.Destroyer,
+        UnitType.Cruiser,
+        UnitType.Battleship,
+        UnitType.TransportShip,
+        UnitType.TradeShip,
+        UnitType.Carrier,
+      ]),
+    ];
+
+    const splashTargets: Unit[] = [target];
+    for (const { unit } of allNearby) {
+      if (
+        unit !== target &&
+        unit.owner() !== owner &&
+        owner.canAttackPlayer(unit.owner(), true) &&
+        splashTargets.length < MAX_SPLASH_TARGETS
+      ) {
+        splashTargets.push(unit);
+      }
+    }
+
+    const damagePerTarget = Math.round(damage / splashTargets.length);
+    for (const t of splashTargets) {
+      if (t.isActive()) {
+        const multiplier = this.mg
+          .config()
+          .combatMultiplier(UnitType.StrategicBomber, t.type());
+        t.modifyHealth(-Math.round(damagePerTarget * multiplier), owner);
+      }
+    }
+
     this.bomber.setTargetUnit(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);

@@ -28,6 +28,10 @@ export class NavalYardExecution implements Execution {
     }
 
     const owner = this.navalYard.owner();
+
+    // Passive income from naval operations
+    owner.addGold(15n);
+
     const nearby = this.mg.nearbyUnits(
       this.navalYard.tile(),
       HEAL_RANGE,

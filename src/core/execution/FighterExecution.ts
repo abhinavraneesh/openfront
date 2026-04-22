@@ -223,7 +223,13 @@ export class FighterExecution implements Execution {
       this.mg.ticks() - this.lastAttack > attackRate
     ) {
       this.lastAttack = this.mg.ticks();
-      target.modifyHealth(-damage, this.fighter.owner());
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.Fighter, target.type());
+      target.modifyHealth(
+        -Math.round(damage * multiplier),
+        this.fighter.owner(),
+      );
       if (!target.isActive() || target.health() <= 0) {
         this.fighter.setTargetUnit(undefined);
         this.transitionTo("returning");

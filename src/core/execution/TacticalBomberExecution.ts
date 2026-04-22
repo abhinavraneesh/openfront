@@ -214,7 +214,13 @@ export class TacticalBomberExecution implements Execution {
   private doAttack(damage: number): void {
     const target = this.bomber.targetUnit();
     if (target?.isActive()) {
-      target.modifyHealth(-damage, this.bomber.owner());
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.TacticalBomber, target.type());
+      target.modifyHealth(
+        -Math.round(damage * multiplier),
+        this.bomber.owner(),
+      );
     }
     this.bomber.setTargetUnit(undefined);
     this.phase = "returning";

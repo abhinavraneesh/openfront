@@ -46,6 +46,10 @@ const samLauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
 const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
+const destroyerIcon = assetUrl("images/DestroyerIconWhite.svg");
+const boatIcon = assetUrl("images/BoatIconWhite.svg");
+const swordIcon = assetUrl("images/SwordIconWhite.svg");
+const explosionIcon = assetUrl("images/ExplosionIconWhite.svg");
 
 function euclideanDistWorld(
   coord: { x: number; y: number },
@@ -491,11 +495,122 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
     `;
   }
 
+  private unitTypeIcon(type: UnitType): string | null {
+    switch (type) {
+      case UnitType.Destroyer:
+        return destroyerIcon;
+      case UnitType.Cruiser:
+      case UnitType.Battleship:
+      case UnitType.Carrier:
+      case UnitType.Warship:
+        return warshipIcon;
+      case UnitType.Submarine:
+      case UnitType.Minelayer:
+      case UnitType.TransportShip:
+        return boatIcon;
+      case UnitType.NavalYard:
+        return navalYardIcon;
+      case UnitType.Airbase:
+        return airbaseIcon;
+      case UnitType.FuelDepot:
+      case UnitType.Factory:
+        return factoryIcon;
+      case UnitType.CoastalBattery:
+      case UnitType.SAMLauncher:
+        return samLauncherIcon;
+      case UnitType.Fighter:
+      case UnitType.AttackHelicopter:
+        return swordIcon;
+      case UnitType.TacticalBomber:
+      case UnitType.StrategicBomber:
+        return explosionIcon;
+      case UnitType.City:
+        return cityIcon;
+      case UnitType.MissileSilo:
+        return missileSiloIcon;
+      case UnitType.Port:
+        return portIcon;
+      default:
+        return null;
+    }
+  }
+
+  private unitTypeName(type: UnitType): string {
+    const key = "unit_type." + type.toLowerCase().replace(/\s+/g, "_");
+    const translated = translateText(key);
+    return translated !== key ? translated : type;
+  }
+
+  private renderHealthBar(unit: UnitView): TemplateResult {
+    const maxHealth =
+      this.game.config().unitInfo(unit.type()).maxHealth ?? 1000;
+    const pct = Math.max(0, Math.min(100, (unit.health() / maxHealth) * 100));
+    const color =
+      pct > 50 ? "bg-green-500" : pct > 25 ? "bg-yellow-400" : "bg-red-500";
+    return html`
+      <div class="mt-1">
+        <div class="flex items-center gap-1">
+          <div class="flex-1 h-2 bg-gray-600 rounded-full overflow-hidden">
+            <div
+              class="${color} h-full rounded-full transition-all"
+              style="width:${pct}%"
+            ></div>
+          </div>
+          <span class="text-xs opacity-70 w-12 text-right"
+            >${unit.health()}/${maxHealth}</span
+          >
+        </div>
+      </div>
+    `;
+  }
+
+  private renderAircraftCounts(base: UnitView): TemplateResult {
+    const owner = base.owner();
+    const AIRCRAFT: Array<{ unitType: UnitType; label: string }> = [
+      { unitType: UnitType.Fighter, label: translateText("unit_type.fighter") },
+      {
+        unitType: UnitType.TacticalBomber,
+        label: translateText("unit_type.tactical_bomber"),
+      },
+      {
+        unitType: UnitType.StrategicBomber,
+        label: translateText("unit_type.strategic_bomber"),
+      },
+      {
+        unitType: UnitType.AttackHelicopter,
+        label: translateText("unit_type.attack_helicopter"),
+      },
+    ];
+    const rows = AIRCRAFT.map(({ unitType, label }) => {
+      const count = this.game
+        .units(unitType)
+        .filter((u) => u.owner() === owner).length;
+      return html`
+        <div class="flex justify-between text-xs py-0.5">
+          <span class="opacity-70">${label}</span>
+          <span class="font-mono">${count}</span>
+        </div>
+      `;
+    });
+    return html`
+      <div class="mt-2 border-t border-gray-600 pt-1">
+        <div class="text-xs font-semibold opacity-60 mb-1">Aircraft</div>
+        ${rows}
+      </div>
+    `;
+  }
+
   private renderUnitInfo(unit: UnitView) {
     const isAlly =
       (unit.owner() === this.game.myPlayer() ||
         this.game.myPlayer()?.isFriendly(unit.owner())) ??
       false;
+
+    const icon = this.unitTypeIcon(unit.type());
+    const name = this.unitTypeName(unit.type());
+    const isOwnBase =
+      unit.owner() === this.game.myPlayer() &&
+      (unit.type() === UnitType.Airbase || unit.type() === UnitType.Carrier);
 
     return html`
       <div class="p-2">
@@ -503,17 +618,33 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           ${unit.owner().displayName()}
         </div>
         <div class="mt-1">
-          <div class="text-sm opacity-80">${unit.type()}</div>
-          ${unit.hasHealth()
-            ? html` <div class="text-sm">Health: ${unit.health()}</div> `
-            : ""}
+          <div class="flex items-center gap-1.5 text-sm opacity-90">
+            ${icon
+              ? html`<img
+                  src=${icon}
+                  alt=""
+                  aria-hidden="true"
+                  width="14"
+                  height="14"
+                  class="brightness-0 invert opacity-80"
+                />`
+              : ""}
+            <span>${name}</span>
+          </div>
+          ${unit.hasHealth() ? this.renderHealthBar(unit) : ""}
           ${unit.type() === UnitType.TransportShip
             ? html`
-                <div class="text-sm">
+                <div class="text-sm mt-1">
                   Troops: ${renderTroops(unit.troops())}
                 </div>
               `
             : ""}
+          ${unit.type() === UnitType.Fighter
+            ? html`<div class="text-xs mt-1 text-blue-300">
+                Auto-intercept: active
+              </div>`
+            : ""}
+          ${isOwnBase ? this.renderAircraftCounts(unit) : ""}
         </div>
       </div>
     `;

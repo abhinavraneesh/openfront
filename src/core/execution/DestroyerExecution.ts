@@ -73,9 +73,10 @@ export class DestroyerExecution implements Execution {
     const config = this.mg.config();
     const info = config.unitInfo(UnitType.Destroyer);
     const range = info.range ?? 100;
+    const shoreRange = config.shoreBombardmentRange();
     const owner = this.destroyer.owner();
 
-    const ships = this.mg.nearbyUnits(this.destroyer.tile()!, range, [
+    const navalTargets = this.mg.nearbyUnits(this.destroyer.tile()!, range, [
       UnitType.TransportShip,
       UnitType.TradeShip,
       UnitType.Warship,
@@ -87,10 +88,23 @@ export class DestroyerExecution implements Execution {
       UnitType.Carrier,
     ]);
 
+    const shoreTargets = this.mg.nearbyUnits(
+      this.destroyer.tile()!,
+      shoreRange,
+      [
+        UnitType.DefensePost,
+        UnitType.CoastalBattery,
+        UnitType.Port,
+        UnitType.NavalYard,
+        UnitType.City,
+        UnitType.Factory,
+      ],
+    );
+
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of ships) {
+    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
       if (
         unit.owner() === owner ||
         unit === this.destroyer ||
@@ -99,9 +113,13 @@ export class DestroyerExecution implements Execution {
       ) {
         continue;
       }
-      if (distSquared < bestDist) {
+      // Prioritize naval targets over shore targets
+      const adjustedDist = navalTargets.some((n) => n.unit === unit)
+        ? distSquared
+        : distSquared * 4;
+      if (adjustedDist < bestDist) {
         best = unit;
-        bestDist = distSquared;
+        bestDist = adjustedDist;
       }
     }
     return best;
@@ -112,17 +130,21 @@ export class DestroyerExecution implements Execution {
     const attackRate = info.attackRate ?? 15;
     if (this.mg.ticks() - this.lastAttack > attackRate) {
       this.lastAttack = this.mg.ticks();
+      const target = this.destroyer.targetUnit()!;
+      const multiplier = this.mg
+        .config()
+        .combatMultiplier(UnitType.Destroyer, target.type());
       this.mg.addExecution(
         new NavalShellExecution(
           this.destroyer.tile(),
           this.destroyer.owner(),
           this.destroyer,
-          this.destroyer.targetUnit()!,
-          info.damage ?? 120,
+          target,
+          Math.round((info.damage ?? 120) * multiplier),
         ),
       );
-      if (!this.destroyer.targetUnit()!.hasHealth()) {
-        this.alreadySentShell.add(this.destroyer.targetUnit()!);
+      if (!target.hasHealth()) {
+        this.alreadySentShell.add(target);
         this.destroyer.setTargetUnit(undefined);
       }
     }

@@ -30,9 +30,9 @@ enum Relationship {
 }
 
 // Fixed draw size in world-units for new PNG sprites (matches warship.png scale)
-const SPRITE_WORLD_SIZE = 11;
+const SPRITE_WORLD_SIZE = 16;
 // Plate radius in world-units — just enough to peek out from under the sprite
-const SPRITE_PLATE_RADIUS = 7;
+const SPRITE_PLATE_RADIUS = 10;
 
 const SPRITE_BASE_PLATE_TYPES = new Set([
   UnitType.Destroyer,
