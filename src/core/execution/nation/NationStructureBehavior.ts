@@ -63,8 +63,32 @@ function getStructureRatios(
       ratioPerCity: 0.2,
       perceivedCostIncreasePerOwned: 1,
     },
+    [UnitType.NavalYard]: {
+      ratioPerCity: 0.1,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.CoastalBattery]: {
+      ratioPerCity: 0.15,
+      perceivedCostIncreasePerOwned: 0.5,
+    },
+    [UnitType.Airbase]: {
+      ratioPerCity: 0.1,
+      perceivedCostIncreasePerOwned: 1,
+    },
+    [UnitType.FuelDepot]: {
+      ratioPerCity: 0.1,
+      perceivedCostIncreasePerOwned: 0.5,
+    },
   };
 }
+
+/** Minimum city count before a nation attempts to build the given structure. */
+const PHASE_GATING: Partial<Record<UnitType, number>> = {
+  [UnitType.NavalYard]: 3,
+  [UnitType.CoastalBattery]: 4,
+  [UnitType.Airbase]: 5,
+  [UnitType.FuelDepot]: 6,
+};
 
 /** Perceived cost increase percentage per city owned */
 const CITY_PERCEIVED_COST_INCREASE_PER_OWNED = 1;
@@ -118,6 +142,10 @@ export class NationStructureBehavior {
       UnitType.Factory,
       UnitType.SAMLauncher,
       UnitType.MissileSilo,
+      UnitType.NavalYard,
+      UnitType.CoastalBattery,
+      UnitType.Airbase,
+      UnitType.FuelDepot,
     ];
 
     const nukesEnabled =
@@ -132,8 +160,19 @@ export class NationStructureBehavior {
         continue;
       }
 
-      // Skip ports if no coastal tiles
-      if (structureType === UnitType.Port && !hasCoastalTiles) {
+      // Skip ports/naval yards/coastal batteries if no coastal tiles
+      if (
+        (structureType === UnitType.Port ||
+          structureType === UnitType.NavalYard ||
+          structureType === UnitType.CoastalBattery) &&
+        !hasCoastalTiles
+      ) {
+        continue;
+      }
+
+      // Phase gating: require minimum city count before attempting advanced structures
+      const minCities = PHASE_GATING[structureType];
+      if (minCities !== undefined && cityCount < minCities) {
         continue;
       }
 
@@ -446,10 +485,13 @@ export class NationStructureBehavior {
   }
 
   private structureSpawnTile(type: UnitType): TileRef | null {
-    const tiles =
-      type === UnitType.Port
-        ? this.randCoastalTileArray(25)
-        : randTerritoryTileArray(this.random, this.game, this.player, 25);
+    const isCoastal =
+      type === UnitType.Port ||
+      type === UnitType.NavalYard ||
+      type === UnitType.CoastalBattery;
+    const tiles = isCoastal
+      ? this.randCoastalTileArray(25)
+      : randTerritoryTileArray(this.random, this.game, this.player, 25);
     if (tiles.length === 0) return null;
     const valueFunction = this.structureSpawnTileValue(type);
     if (valueFunction === null) return null;
@@ -516,6 +558,18 @@ export class NationStructureBehavior {
         return this.defensePostValue();
       case UnitType.SAMLauncher:
         return this.samLauncherValue();
+      case UnitType.NavalYard:
+        // Reuse port placement logic (coastal + spacing)
+        return this.portValue();
+      case UnitType.CoastalBattery:
+        // Coastal defensive: port-like placement
+        return this.portValue();
+      case UnitType.Airbase:
+        // Interior strategic: factory-like placement
+        return this.factoryValue();
+      case UnitType.FuelDepot:
+        // Interior logistics: factory-like placement
+        return this.factoryValue();
       default:
         throw new Error(`Value function not implemented for ${type}`);
     }
