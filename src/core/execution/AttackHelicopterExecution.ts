@@ -9,12 +9,14 @@ import {
 } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
-import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
+import { SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { CASUtils } from "./CASUtils";
 
 // Helicopters are slower air units — they use air pathfinding but prefer land
 // (no fuel, unlimited operation, patrol radius around spawn city)
 const HELI_TARGETS = [UnitType.DefensePost, UnitType.SAMLauncher] as const;
+const HELI_PATROL_RANGE = 40;
 
 export class AttackHelicopterExecution implements Execution {
   private heli: Unit;
@@ -95,29 +97,29 @@ export class AttackHelicopterExecution implements Execution {
   }
 
   private findTarget(range: number): Unit | undefined {
-    const owner = this.heli.owner();
-    const nearby = this.mg.nearbyUnits(this.heli.tile()!, range, HELI_TARGETS);
-    let best: Unit | undefined;
-    let bestDist = Infinity;
-    for (const { unit, distSquared } of nearby) {
-      if (
-        unit.owner() !== owner &&
-        owner.canAttackPlayer(unit.owner(), true) &&
-        distSquared < bestDist
-      ) {
-        best = unit;
-        bestDist = distSquared;
-      }
-    }
-    return best;
+    return CASUtils.findNearest(this.mg, this.heli, range, HELI_TARGETS);
   }
 
   private patrol(moveSpeed: number): void {
     if (this.heli.targetTile() === undefined) {
-      this.heli.setTargetTile(this.randomPatrolTile());
+      this.heli.setTargetTile(
+        CASUtils.randomPatrolTile(
+          this.mg,
+          this.homeBaseTile,
+          this.random,
+          HELI_PATROL_RANGE,
+          true,
+        ),
+      );
     }
     if (this.heli.targetTile() !== undefined) {
-      this.moveToward(this.heli.targetTile()!, moveSpeed);
+      this.pathFinder = CASUtils.moveToward(
+        this.mg,
+        this.pathFinder,
+        this.heli,
+        this.heli.targetTile()!,
+        moveSpeed,
+      );
       if (
         this.mg.manhattanDist(this.heli.tile(), this.heli.targetTile()!) === 0
       ) {
@@ -128,34 +130,13 @@ export class AttackHelicopterExecution implements Execution {
   }
 
   private moveToward(target: TileRef, moveSpeed: number): void {
-    for (let i = 0; i < moveSpeed; i++) {
-      const result = this.pathFinder.next(this.heli.tile(), target);
-      if (result.status === PathStatus.NEXT) {
-        this.heli.move(result.node);
-      } else if (result.status === PathStatus.COMPLETE) {
-        break;
-      } else {
-        this.pathFinder = PathFinding.Air(this.mg);
-        break;
-      }
-    }
-  }
-
-  private randomPatrolTile(): TileRef {
-    const range = 40;
-    const mg = this.mg;
-    for (let i = 0; i < 50; i++) {
-      const x =
-        mg.x(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
-      const y =
-        mg.y(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
-      if (mg.isValidCoord(x, y)) {
-        const tile = mg.ref(x, y);
-        // Prefer land tiles for helicopters
-        if (mg.isLand(tile)) return tile;
-      }
-    }
-    return this.homeBaseTile;
+    this.pathFinder = CASUtils.moveToward(
+      this.mg,
+      this.pathFinder,
+      this.heli,
+      target,
+      moveSpeed,
+    );
   }
 
   isActive(): boolean {
