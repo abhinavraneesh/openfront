@@ -25,6 +25,7 @@ import {
   Tick,
   TrainType,
   UnitInfo,
+  UnitMission,
   UnitType,
 } from "./Game";
 import { GameMap, TileRef } from "./GameMap";
@@ -193,6 +194,18 @@ export class UnitView {
   }
   isLoaded(): boolean | undefined {
     return this.data.loaded;
+  }
+  mission(): UnitMission | undefined {
+    return this.data.mission;
+  }
+  missionTargetTile(): TileRef | undefined {
+    return this.data.missionTargetTile;
+  }
+  missionTargetUnitId(): number | undefined {
+    return this.data.missionTargetUnitId;
+  }
+  patrolTile(): TileRef | undefined {
+    return this.data.patrolTile;
   }
 }
 

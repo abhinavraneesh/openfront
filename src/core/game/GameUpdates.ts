@@ -153,6 +153,7 @@ export interface UnitUpdate {
   mission?: UnitMission;
   missionTargetTile?: TileRef;
   missionTargetUnitId?: number;
+  patrolTile?: TileRef;
 }
 
 export interface AttackUpdate {

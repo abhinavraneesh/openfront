@@ -197,6 +197,11 @@ export class StartTargetingModeEvent implements GameEvent {
 
 export class StopTargetingModeEvent implements GameEvent {}
 
+// Client-side: show Airbase/Carrier mission panel for a specific unit
+export class ShowAirbasePanelEvent implements GameEvent {
+  constructor(public readonly unitId: number) {}
+}
+
 export class Transport {
   private socket: WebSocket | null = null;
 
