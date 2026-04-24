@@ -476,9 +476,9 @@ export class DefaultConfig implements Config {
       case UnitType.Destroyer:
         info = {
           cost: this.costWrapper(() => 150_000, UnitType.Destroyer),
-          maxHealth: 600,
-          damage: 120,
-          attackRate: 15,
+          maxHealth: 900,
+          damage: 150,
+          attackRate: 10,
           range: 100,
           constructionDuration: this.instantBuild() ? 0 : 20,
         };
@@ -486,9 +486,9 @@ export class DefaultConfig implements Config {
       case UnitType.Cruiser:
         info = {
           cost: this.costWrapper(() => 300_000, UnitType.Cruiser),
-          maxHealth: 900,
-          damage: 200,
-          attackRate: 20,
+          maxHealth: 3000,
+          damage: 300,
+          attackRate: 8,
           range: 110,
           constructionDuration: this.instantBuild() ? 0 : 30,
         };
@@ -496,9 +496,9 @@ export class DefaultConfig implements Config {
       case UnitType.Battleship:
         info = {
           cost: this.costWrapper(() => 600_000, UnitType.Battleship),
-          maxHealth: 1800,
-          damage: 400,
-          attackRate: 25,
+          maxHealth: 5000,
+          damage: 350,
+          attackRate: 15,
           range: 150,
           constructionDuration: this.instantBuild() ? 0 : 50,
         };
@@ -506,9 +506,9 @@ export class DefaultConfig implements Config {
       case UnitType.Submarine:
         info = {
           cost: this.costWrapper(() => 250_000, UnitType.Submarine),
-          maxHealth: 700,
-          damage: 400,
-          attackRate: 40,
+          maxHealth: 600,
+          damage: 500,
+          attackRate: 35,
           range: 90,
           constructionDuration: this.instantBuild() ? 0 : 40,
         };
@@ -590,7 +590,7 @@ export class DefaultConfig implements Config {
       case UnitType.CoastalBattery:
         info = {
           cost: this.costWrapper(() => 400_000, UnitType.CoastalBattery),
-          maxHealth: 800,
+          maxHealth: 2700,
           damage: 250,
           attackRate: 30,
           range: 80,
@@ -610,7 +610,7 @@ export class DefaultConfig implements Config {
         info = {
           cost: this.costWrapper(() => 0, UnitType.Mine),
           maxHealth: 1,
-          damage: 400,
+          damage: 150,
         };
         break;
       default:
@@ -1175,20 +1175,24 @@ export class DefaultConfig implements Config {
 
   combatMultiplier(attacker: UnitType, defender: UnitType): number {
     const navalShips = new Set([
+      UnitType.Warship,
       UnitType.Destroyer,
       UnitType.Cruiser,
       UnitType.Battleship,
       UnitType.Submarine,
       UnitType.Minelayer,
       UnitType.Carrier,
-      UnitType.Warship,
       UnitType.TransportShip,
       UnitType.TradeShip,
     ]);
-    const capitalShips = new Set([
-      UnitType.Battleship,
-      UnitType.Carrier,
+    const surfaceShips = new Set([
       UnitType.Warship,
+      UnitType.Destroyer,
+      UnitType.Cruiser,
+      UnitType.Carrier,
+      UnitType.TransportShip,
+      UnitType.TradeShip,
+      UnitType.Minelayer,
     ]);
     const airUnits = new Set([
       UnitType.Fighter,
@@ -1196,43 +1200,84 @@ export class DefaultConfig implements Config {
       UnitType.StrategicBomber,
       UnitType.AttackHelicopter,
     ]);
-    const landStructures = new Set([
-      UnitType.DefensePost,
+    const buildings = new Set([
       UnitType.City,
       UnitType.Port,
       UnitType.Factory,
       UnitType.MissileSilo,
       UnitType.SAMLauncher,
-      UnitType.NavalYard,
       UnitType.Airbase,
+      UnitType.NavalYard,
       UnitType.CoastalBattery,
       UnitType.FuelDepot,
+      UnitType.DefensePost,
     ]);
 
-    // Destroyer depth charges are highly effective vs submarines
-    if (attacker === UnitType.Destroyer && defender === UnitType.Submarine)
-      return 2.0;
+    // --- Fighter: air superiority only ---
+    if (attacker === UnitType.Fighter) {
+      if (airUnits.has(defender)) return 3.0;
+      return 0.0; // cannot damage ground or naval
+    }
 
-    // Submarines ambush capital ships
-    if (attacker === UnitType.Submarine && capitalShips.has(defender))
-      return 2.0;
+    // --- Tactical Bomber: precision strikes on buildings and ships ---
+    if (attacker === UnitType.TacticalBomber) {
+      if (buildings.has(defender)) return 3.0;
+      if (navalShips.has(defender)) return 2.5;
+      return 0.0; // no damage vs troops
+    }
 
-    // Cruiser AA fire vs aircraft
-    if (attacker === UnitType.Cruiser && airUnits.has(defender)) return 2.0;
-
-    // Air units are strong vs naval and land targets
-    if (
-      airUnits.has(attacker) &&
-      (navalShips.has(defender) || landStructures.has(defender))
-    )
+    // --- Strategic Bomber: area bombardment ---
+    if (attacker === UnitType.StrategicBomber) {
       return 1.5;
+    }
 
-    // Coastal batteries punish ships that get close
-    if (attacker === UnitType.CoastalBattery && navalShips.has(defender))
-      return 1.5;
+    // --- Attack Helicopter ---
+    if (attacker === UnitType.AttackHelicopter) {
+      if (defender === UnitType.DefensePost) return 2.0;
+      if (navalShips.has(defender)) return 0.3;
+      return 2.5; // vs troops and other buildings
+    }
 
-    // Naval ships bombard shore structures effectively
-    if (navalShips.has(attacker) && landStructures.has(defender)) return 1.5;
+    // --- Destroyer: ASW specialist ---
+    if (attacker === UnitType.Destroyer) {
+      if (defender === UnitType.Submarine) return 3.0;
+      if (defender === UnitType.Minelayer) return 2.5;
+      if (defender === UnitType.Cruiser || defender === UnitType.Battleship)
+        return 0.4;
+      return 1.0;
+    }
+
+    // --- Cruiser: AA + fleet escort ---
+    if (attacker === UnitType.Cruiser) {
+      if (airUnits.has(defender)) return 2.0;
+      if (defender === UnitType.Destroyer) return 1.8;
+      if (defender === UnitType.Submarine) return 0.5;
+      return 1.0;
+    }
+
+    // --- Battleship: shore bombardment + surface dominance ---
+    if (attacker === UnitType.Battleship) {
+      if (defender === UnitType.Submarine) return 0.2;
+      if (surfaceShips.has(defender)) return 2.5;
+      if (buildings.has(defender)) return 3.0;
+      return 1.0;
+    }
+
+    // --- Submarine: ambush capital ships ---
+    if (attacker === UnitType.Submarine) {
+      if (defender === UnitType.Carrier) return 4.0;
+      if (defender === UnitType.Battleship || defender === UnitType.Warship)
+        return 3.5;
+      if (defender === UnitType.Cruiser) return 2.0;
+      if (defender === UnitType.Destroyer) return 0.5;
+      return 1.0;
+    }
+
+    // --- Coastal Battery: ships only ---
+    if (attacker === UnitType.CoastalBattery) {
+      if (navalShips.has(defender)) return 2.0;
+      return 0.0; // cannot damage land units or aircraft
+    }
 
     return 1.0;
   }
