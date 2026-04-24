@@ -7,8 +7,11 @@ import { GameView } from "../../../core/game/GameView";
 import { UserSettings } from "../../../core/game/UserSettings";
 import { ClientID } from "../../../core/Schemas";
 import { AttackRatioEvent } from "../../InputHandler";
+import {
+  SetWorkerRatioIntentEvent,
+  ShowFleetPanelEvent,
+} from "../../Transport";
 import { renderNumber, renderTroops } from "../../Utils";
-import { SetWorkerRatioIntentEvent } from "../../Transport";
 import { UIState } from "../UIState";
 import { Layer } from "./Layer";
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
@@ -142,6 +145,10 @@ export class ControlPanel extends LitElement implements Layer {
   private handleWorkerSliderInput(e: Event) {
     const input = e.target as HTMLInputElement;
     this.workerRatio = input.valueAsNumber / 100;
+  }
+
+  private onFleetClick() {
+    this.eventBus.emit(new ShowFleetPanelEvent());
   }
 
   private handleWorkerSliderChange(e: Event) {
@@ -314,6 +321,14 @@ export class ControlPanel extends LitElement implements Layer {
           <img src=${goldCoinIcon} width="13" height="13" class="shrink-0" />
           <span class="tabular-nums">${renderNumber(this._gold)}</span>
         </div>
+        <!-- Fleet -->
+        <button
+          class="shrink-0 border border-gray-600 rounded-md font-bold text-white text-sm py-0.5 px-2 hover:bg-gray-700"
+          translate="no"
+          @click=${() => this.onFleetClick()}
+        >
+          Fleet
+        </button>
       </div>
       <!-- Row 2: attack ratio | slider -->
       <div class="flex items-center gap-1.5" translate="no">
@@ -410,6 +425,14 @@ export class ControlPanel extends LitElement implements Layer {
           <img src=${goldCoinIcon} width="13" height="13" />
           <span class="px-0.5">${renderNumber(this._gold)}</span>
         </div>
+        <!-- Fleet -->
+        <button
+          class="shrink-0 border border-gray-600 rounded-md font-bold text-white text-xs py-1 px-1.5 hover:bg-gray-700"
+          translate="no"
+          @click=${() => this.onFleetClick()}
+        >
+          Fleet
+        </button>
         <!-- Troop bar -->
         <div class="w-[40%] shrink-0 flex items-center">
           ${this.renderMobileTroopBar()}
