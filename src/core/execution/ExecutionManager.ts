@@ -22,11 +22,12 @@ import { NoOpExecution } from "./NoOpExecution";
 import { PauseExecution } from "./PauseExecution";
 import { QuickChatExecution } from "./QuickChatExecution";
 import { RetreatExecution } from "./RetreatExecution";
+import { SetUnitMissionExecution } from "./SetUnitMissionExecution";
+import { SetWorkerRatioExecution } from "./SetWorkerRatioExecution";
 import { SpawnExecution } from "./SpawnExecution";
 import { TargetPlayerExecution } from "./TargetPlayerExecution";
 import { TransportShipExecution } from "./TransportShipExecution";
 import { TribeSpawner } from "./TribeSpawner";
-import { SetWorkerRatioExecution } from "./SetWorkerRatioExecution";
 import { UpgradeStructureExecution } from "./UpgradeStructureExecution";
 import { PlayerSpawner } from "./utils/PlayerSpawner";
 
@@ -124,6 +125,14 @@ export class Executor {
         return new PauseExecution(player, intent.paused);
       case "set_worker_ratio":
         return new SetWorkerRatioExecution(player, intent.ratio);
+      case "set_unit_mission":
+        return new SetUnitMissionExecution(
+          player,
+          intent.unitId,
+          intent.mission as import("../game/Game").UnitMission,
+          intent.targetTile as import("../game/GameMap").TileRef | undefined,
+          intent.targetUnitId,
+        );
       default:
         throw new Error(`intent type ${intent} not found`);
     }

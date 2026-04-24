@@ -51,7 +51,8 @@ export type Intent =
   | KickPlayerIntent
   | TogglePauseIntent
   | UpdateGameConfigIntent
-  | SetWorkerRatioIntent;
+  | SetWorkerRatioIntent
+  | SetUnitMissionIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -86,6 +87,7 @@ export type UpdateGameConfigIntent = z.infer<
   typeof UpdateGameConfigIntentSchema
 >;
 export type SetWorkerRatioIntent = z.infer<typeof SetWorkerRatioIntentSchema>;
+export type SetUnitMissionIntent = z.infer<typeof SetUnitMissionIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -460,6 +462,14 @@ export const SetWorkerRatioIntentSchema = z.object({
   ratio: z.number().min(0).max(1),
 });
 
+export const SetUnitMissionIntentSchema = z.object({
+  type: z.literal("set_unit_mission"),
+  unitId: z.number(),
+  mission: z.string(),
+  targetTile: z.number().optional(),
+  targetUnitId: z.number().optional(),
+});
+
 const IntentSchema = z.discriminatedUnion("type", [
   AttackIntentSchema,
   CancelAttackIntentSchema,
@@ -486,6 +496,7 @@ const IntentSchema = z.discriminatedUnion("type", [
   TogglePauseIntentSchema,
   UpdateGameConfigIntentSchema,
   SetWorkerRatioIntentSchema,
+  SetUnitMissionIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)
