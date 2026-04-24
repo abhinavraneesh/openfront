@@ -6,6 +6,7 @@ import { RefreshGraphicsEvent as RedrawGraphicsEvent } from "../InputHandler";
 import { FrameProfiler } from "./FrameProfiler";
 import { TransformHandler } from "./TransformHandler";
 import { UIState } from "./UIState";
+import { AirbaseMissionPanel } from "./layers/AirbaseMissionPanel";
 import { AlertFrame } from "./layers/AlertFrame";
 import { AttackingTroopsOverlay } from "./layers/AttackingTroopsOverlay";
 import { AttacksDisplay } from "./layers/AttacksDisplay";
@@ -236,6 +237,16 @@ export function createRenderer(
   }
   targetingCursor.eventBus = eventBus;
 
+  const airbaseMissionPanel = document.querySelector(
+    "airbase-mission-panel",
+  ) as AirbaseMissionPanel;
+  if (!(airbaseMissionPanel instanceof AirbaseMissionPanel)) {
+    console.error("airbase mission panel not found");
+  }
+  airbaseMissionPanel.game = game;
+  airbaseMissionPanel.eventBus = eventBus;
+  airbaseMissionPanel.transformHandler = transformHandler;
+
   const structureLayer = new StructureLayer(game, eventBus, transformHandler);
   const samRadiusLayer = new SAMRadiusLayer(game, eventBus, uiState);
 
@@ -327,6 +338,7 @@ export function createRenderer(
     alertFrame,
     performanceOverlay,
     targetingCursor,
+    airbaseMissionPanel,
   ];
 
   return new GameRenderer(

@@ -188,6 +188,7 @@ export class UnitImpl implements Unit {
       mission: this._mission,
       missionTargetTile: this._missionTargetTile,
       missionTargetUnitId: this._missionTargetUnitId,
+      patrolTile: this._patrolTile,
     };
   }
 
