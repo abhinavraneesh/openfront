@@ -14,14 +14,47 @@ import { PseudoRandom } from "../PseudoRandom";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
-const BUILDING_TARGETS = [
+// Strategic bomber hunts high-value buildings as primary target selection
+const PRIMARY_TARGETS = [
   UnitType.City,
   UnitType.Port,
   UnitType.Factory,
   UnitType.MissileSilo,
   UnitType.SAMLauncher,
   UnitType.Airbase,
+  UnitType.NavalYard,
+  UnitType.CoastalBattery,
 ] as const;
+
+// All unit types that warheads can damage on impact tile
+const WARHEAD_DAMAGEABLE = [
+  UnitType.City,
+  UnitType.Port,
+  UnitType.Factory,
+  UnitType.MissileSilo,
+  UnitType.SAMLauncher,
+  UnitType.Airbase,
+  UnitType.NavalYard,
+  UnitType.CoastalBattery,
+  UnitType.FuelDepot,
+  UnitType.DefensePost,
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Minelayer,
+  UnitType.Carrier,
+  UnitType.TransportShip,
+] as const;
+
+// Within this tile distance the payload releases regardless of bomber health
+const POINT_OF_NO_RETURN = 2;
+// Cluster: 1 centre warhead + this many scatter warheads within SCATTER_RADIUS
+const SCATTER_COUNT = 4;
+const SCATTER_RADIUS = 3;
+// Per-warhead damage (total damage split across warheads)
+const WARHEAD_SEARCH_RADIUS = 1; // find units within 1 tile of each warhead landing tile
 
 export class StrategicBomberExecution implements Execution {
   private bomber: Unit;
@@ -33,6 +66,9 @@ export class StrategicBomberExecution implements Execution {
   private maxFuel = 120;
   private homeBaseTile: TileRef;
   private idleTicks = 0;
+  // Set when bomber enters point-of-no-return; payload fires even if shot down
+  private payloadArmed = false;
+  private armedTargetTile: TileRef | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.StrategicBomber> & OwnerComp) | Unit,
@@ -68,7 +104,13 @@ export class StrategicBomberExecution implements Execution {
 
   tick(ticks: number): void {
     if (!this.bomber?.isActive()) return;
+
     if (this.bomber.health() <= 0) {
+      // If payload is armed, release it before the bomber is destroyed
+      if (this.payloadArmed && this.armedTargetTile !== null) {
+        const info = this.mg.config().unitInfo(UnitType.StrategicBomber);
+        this.releaseCluster(this.armedTargetTile, info.damage ?? 1500);
+      }
       this.bomber.delete();
       return;
     }
@@ -171,7 +213,7 @@ export class StrategicBomberExecution implements Execution {
     const candidates = this.mg.nearbyUnits(
       this.bomber.tile()!,
       range,
-      BUILDING_TARGETS,
+      PRIMARY_TARGETS,
     );
 
     let best: Unit | undefined;
@@ -195,74 +237,87 @@ export class StrategicBomberExecution implements Execution {
     }
   }
 
-  private doOutbound(moveSpeed: number, damage: number): void {
+  private doOutbound(moveSpeed: number, _damage: number): void {
     const target = this.bomber.targetUnit();
     if (!target?.isActive()) {
       this.bomber.setTargetUnit(undefined);
+      this.payloadArmed = false;
+      this.armedTargetTile = null;
       this.phase = "returning";
       this.pathFinder = PathFinding.Air(this.mg);
       return;
     }
 
+    // Arm payload once within point-of-no-return distance
+    const dist = this.mg.manhattanDist(this.bomber.tile(), target.tile());
+    if (dist <= POINT_OF_NO_RETURN && !this.payloadArmed) {
+      this.payloadArmed = true;
+      this.armedTargetTile = target.tile();
+    }
+
     this.moveToward(target.tile(), moveSpeed);
 
-    if (this.mg.manhattanDist(this.bomber.tile(), target.tile()) <= 1) {
+    if (dist <= 1) {
       this.phase = "attacking";
     }
   }
 
   private doAttack(damage: number): void {
     const target = this.bomber.targetUnit();
-    if (!target?.isActive()) {
-      this.bomber.setTargetUnit(undefined);
-      this.phase = "returning";
-      this.pathFinder = PathFinding.Air(this.mg);
-      return;
+    const targetTile = target?.tile() ?? this.armedTargetTile;
+    if (targetTile !== null && targetTile !== undefined) {
+      this.releaseCluster(targetTile, damage);
     }
-
-    // Cluster payload: damage primary target + splash nearby enemy units
-    const CLUSTER_RADIUS = 15;
-    const MAX_SPLASH_TARGETS = 5;
-    const owner = this.bomber.owner();
-
-    const allNearby = [
-      ...this.mg.nearbyUnits(target.tile(), CLUSTER_RADIUS, BUILDING_TARGETS),
-      ...this.mg.nearbyUnits(target.tile(), CLUSTER_RADIUS, [
-        UnitType.Warship,
-        UnitType.Destroyer,
-        UnitType.Cruiser,
-        UnitType.Battleship,
-        UnitType.TransportShip,
-        UnitType.TradeShip,
-        UnitType.Carrier,
-      ]),
-    ];
-
-    const splashTargets: Unit[] = [target];
-    for (const { unit } of allNearby) {
-      if (
-        unit !== target &&
-        unit.owner() !== owner &&
-        owner.canAttackPlayer(unit.owner(), true) &&
-        splashTargets.length < MAX_SPLASH_TARGETS
-      ) {
-        splashTargets.push(unit);
-      }
-    }
-
-    const damagePerTarget = Math.round(damage / splashTargets.length);
-    for (const t of splashTargets) {
-      if (t.isActive()) {
-        const multiplier = this.mg
-          .config()
-          .combatMultiplier(UnitType.StrategicBomber, t.type());
-        t.modifyHealth(-Math.round(damagePerTarget * multiplier), owner);
-      }
-    }
-
     this.bomber.setTargetUnit(undefined);
+    this.payloadArmed = false;
+    this.armedTargetTile = null;
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);
+  }
+
+  /**
+   * Scatter cluster: 1 centre warhead + SCATTER_COUNT random warheads within
+   * SCATTER_RADIUS tiles. Each warhead damages all enemy units at its landing tile.
+   * No tile ownership change, no fallout.
+   */
+  private releaseCluster(centreTile: TileRef, totalDamage: number): void {
+    const owner = this.bomber.owner();
+    const warheadCount = 1 + SCATTER_COUNT;
+    const damagePerWarhead = Math.round(totalDamage / warheadCount);
+
+    // Build list of landing tiles: centre first, then scatter
+    const landingTiles: TileRef[] = [centreTile];
+    const cx = this.mg.x(centreTile);
+    const cy = this.mg.y(centreTile);
+    for (let i = 0; i < SCATTER_COUNT; i++) {
+      const dx = this.random.nextInt(-SCATTER_RADIUS, SCATTER_RADIUS + 1);
+      const dy = this.random.nextInt(-SCATTER_RADIUS, SCATTER_RADIUS + 1);
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (this.mg.isValidCoord(nx, ny)) {
+        landingTiles.push(this.mg.ref(nx, ny));
+      }
+    }
+
+    // Damage all enemy units at each landing tile
+    for (const tile of landingTiles) {
+      const nearby = this.mg.nearbyUnits(tile, WARHEAD_SEARCH_RADIUS, WARHEAD_DAMAGEABLE);
+      for (const { unit } of nearby) {
+        if (
+          unit.owner() !== owner &&
+          owner.canAttackPlayer(unit.owner(), true) &&
+          unit.isActive()
+        ) {
+          const multiplier = this.mg
+            .config()
+            .combatMultiplier(UnitType.StrategicBomber, unit.type());
+          unit.modifyHealth(
+            -Math.round(damagePerWarhead * multiplier),
+            owner,
+          );
+        }
+      }
+    }
   }
 
   private doReturn(moveSpeed: number): void {

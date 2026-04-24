@@ -541,25 +541,25 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.TacticalBomber:
         info = {
-          cost: this.costWrapper(() => 600_000, UnitType.TacticalBomber),
+          cost: this.costWrapper(() => 2_000_000, UnitType.TacticalBomber),
           maxHealth: 400,
           damage: 600,
           range: 80,
           moveSpeed: 2,
           maxFuel: 60,
-          constructionDuration: this.instantBuild() ? 0 : 30,
+          constructionDuration: this.instantBuild() ? 0 : 180,
         };
         break;
       case UnitType.StrategicBomber:
         info = {
-          cost: this.costWrapper(() => 1_200_000, UnitType.StrategicBomber),
+          cost: this.costWrapper(() => 4_000_000, UnitType.StrategicBomber),
           maxHealth: 500,
           damage: 1500,
           attackRate: 0,
           range: 120,
           moveSpeed: 1,
           maxFuel: 120,
-          constructionDuration: this.instantBuild() ? 0 : 50,
+          constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;
       case UnitType.AttackHelicopter:

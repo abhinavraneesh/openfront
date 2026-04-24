@@ -14,17 +14,27 @@ import { PseudoRandom } from "../PseudoRandom";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
-const NAVAL_TYPES = [
+// Precision strike: buildings and ships only — never troops
+const STRIKE_TARGETS = [
   UnitType.Warship,
   UnitType.Destroyer,
   UnitType.Cruiser,
   UnitType.Battleship,
   UnitType.Submarine,
   UnitType.Minelayer,
+  UnitType.Carrier,
   UnitType.TransportShip,
+  UnitType.City,
+  UnitType.Port,
+  UnitType.Factory,
+  UnitType.MissileSilo,
+  UnitType.SAMLauncher,
+  UnitType.Airbase,
+  UnitType.NavalYard,
+  UnitType.CoastalBattery,
+  UnitType.FuelDepot,
+  UnitType.DefensePost,
 ] as const;
-
-const GROUND_TARGETS = [UnitType.DefensePost] as const;
 
 export class TacticalBomberExecution implements Execution {
   private bomber: Unit;
@@ -170,17 +180,19 @@ export class TacticalBomberExecution implements Execution {
 
   private doFinding(range: number): void {
     const owner = this.bomber.owner();
-    const allTargets = [
-      ...this.mg.nearbyUnits(this.bomber.tile()!, range, NAVAL_TYPES),
-      ...this.mg.nearbyUnits(this.bomber.tile()!, range, GROUND_TARGETS),
-    ];
+    const candidates = this.mg.nearbyUnits(
+      this.bomber.tile()!,
+      range,
+      STRIKE_TARGETS,
+    );
 
     let best: Unit | undefined;
     let bestDist = Infinity;
-    for (const { unit, distSquared } of allTargets) {
+    for (const { unit, distSquared } of candidates) {
       if (
         unit.owner() !== owner &&
         owner.canAttackPlayer(unit.owner(), true) &&
+        !unit.isUnderConstruction() &&
         distSquared < bestDist
       ) {
         best = unit;
@@ -195,7 +207,7 @@ export class TacticalBomberExecution implements Execution {
     }
   }
 
-  private doOutbound(moveSpeed: number, damage: number): void {
+  private doOutbound(moveSpeed: number, _damage: number): void {
     const target = this.bomber.targetUnit();
     if (!target?.isActive()) {
       this.bomber.setTargetUnit(undefined);
