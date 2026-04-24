@@ -29,6 +29,7 @@ interface MissionOption {
   needsTarget?: boolean;
   targetingLabel?: string;
   specialAttackShip?: boolean;
+  specialEscort?: boolean;
   onlyFor?: UnitType[];
 }
 
@@ -45,6 +46,13 @@ const BASE_OPTIONS: MissionOption[] = [
     mission: UnitMission.PATROL_AREA,
     needsTarget: true,
     targetingLabel: "Select patrol center",
+  },
+  {
+    label: "Escort unit →",
+    mission: UnitMission.ESCORT_UNIT,
+    needsTarget: true,
+    targetingLabel: "Select friendly ship to escort",
+    specialEscort: true,
   },
   { label: "Return to port", mission: UnitMission.RETURN_TO_PORT },
   {
@@ -234,6 +242,31 @@ export class FleetPanel extends LitElement implements Layer {
             let bestDist = Infinity;
             for (const { unit, distSquared } of candidates) {
               if (myId !== undefined && unit.owner().id() === myId) continue;
+              if (!unit.isActive()) continue;
+              if (distSquared < bestDist) {
+                best = unit;
+                bestDist = distSquared;
+              }
+            }
+            if (best) {
+              eventBus.emit(
+                new SetUnitMissionIntentEvent(
+                  shipId,
+                  opt.mission,
+                  undefined,
+                  best.id(),
+                ),
+              );
+            }
+          } else if (opt.specialEscort) {
+            // Find nearest friendly ship to the clicked tile (not self)
+            const candidates = game.nearbyUnits(tile, 20, SHIP_TYPES);
+            let best: UnitView | undefined;
+            let bestDist = Infinity;
+            for (const { unit, distSquared } of candidates) {
+              if (myId === undefined) continue;
+              if (unit.owner().id() !== myId) continue;
+              if (unit.id() === shipId) continue;
               if (!unit.isActive()) continue;
               if (distSquared < bestDist) {
                 best = unit;

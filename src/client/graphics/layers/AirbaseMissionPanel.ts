@@ -29,11 +29,18 @@ interface MissionOption {
   mission: UnitMission;
   needsTarget?: boolean;
   targetingLabel?: string;
+  needsNation?: boolean;
 }
 
 const MISSION_OPTIONS: Partial<Record<UnitType, MissionOption[]>> = {
   [UnitType.Fighter]: [
     { label: "Intercept (home base)", mission: UnitMission.INTERCEPT_HOME },
+    {
+      label: "Intercept (patrol tile) →",
+      mission: UnitMission.INTERCEPT_PATROL,
+      needsTarget: true,
+      targetingLabel: "Select patrol center",
+    },
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
   [UnitType.TacticalBomber]: [
@@ -55,7 +62,17 @@ const MISSION_OPTIONS: Partial<Record<UnitType, MissionOption[]>> = {
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
   [UnitType.AttackHelicopter]: [
-    { label: "CAS (auto)", mission: UnitMission.AUTO },
+    {
+      label: "CAS — select nation →",
+      mission: UnitMission.CAS_NATION,
+      needsNation: true,
+    },
+    {
+      label: "Attack tile →",
+      mission: UnitMission.ATTACK_TILE,
+      needsTarget: true,
+      targetingLabel: "Select attack tile",
+    },
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
 };
@@ -69,10 +86,13 @@ function statusText(mission: UnitMission | undefined): string {
     case UnitMission.STAND_DOWN:
       return "Stood down";
     case UnitMission.STRIKE_TARGET:
+      return "Strike mission";
     case UnitMission.CLUSTER_STRIKE:
+      return "Cluster mission";
     case UnitMission.ATTACK_TILE:
+      return "CAS attack";
     case UnitMission.CAS_NATION:
-      return "On mission";
+      return "CAS active";
     default:
       return "Active";
   }
@@ -107,6 +127,8 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
   @state() private _hidden = true;
   @state() private _selectedBuildType: UnitType = UnitType.Fighter;
   @state() private _tickCounter = 0;
+  @state() private _nationPickUnitId: number | null = null;
+  @state() private _nationPickMission: UnitMission | null = null;
 
   init() {
     this.eventBus.on(ShowAirbasePanelEvent, (e) => this.show(e.unitId));
@@ -195,6 +217,11 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const options = MISSION_OPTIONS[unit.type()] ?? [];
     const opt = options.find((o) => o.mission === value);
     if (!opt) return;
+    if (opt.needsNation) {
+      this._nationPickUnitId = unit.id();
+      this._nationPickMission = opt.mission;
+      return;
+    }
     if (opt.needsTarget) {
       const unitId = unit.id();
       this.eventBus.emit(
@@ -212,6 +239,21 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     }
   }
 
+  private onNationSelect(smallID: number) {
+    if (this._nationPickUnitId === null || this._nationPickMission === null)
+      return;
+    this.eventBus.emit(
+      new SetUnitMissionIntentEvent(
+        this._nationPickUnitId,
+        this._nationPickMission,
+        undefined,
+        smallID,
+      ),
+    );
+    this._nationPickUnitId = null;
+    this._nationPickMission = null;
+  }
+
   private recallAll() {
     const host = this.host();
     if (!host) return;
@@ -220,6 +262,31 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
         new SetUnitMissionIntentEvent(u.id(), UnitMission.STAND_DOWN),
       );
     }
+  }
+
+  private scrambleAllFighters() {
+    const host = this.host();
+    if (!host) return;
+    for (const u of this.stationedAircraft(host)) {
+      if (u.type() !== UnitType.Fighter) continue;
+      this.eventBus.emit(
+        new SetUnitMissionIntentEvent(u.id(), UnitMission.INTERCEPT_HOME),
+      );
+    }
+  }
+
+  private enemyNations(): { smallID: number; name: string }[] {
+    const me = this.game.myPlayer();
+    if (!me) return [];
+    const myID = me.smallID();
+    const nations: { smallID: number; name: string }[] = [];
+    for (const p of this.game.players()) {
+      if (!p.isAlive()) continue;
+      if (p.smallID() === myID) continue;
+      nations.push({ smallID: p.smallID(), name: p.displayName() });
+    }
+    nations.sort((a, b) => a.name.localeCompare(b.name));
+    return nations;
   }
 
   static styles = css`
@@ -412,8 +479,47 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
 
         <div class="actions">
           <button @click=${() => this.recallAll()}>Recall all</button>
+          <button @click=${() => this.scrambleAllFighters()}>
+            Scramble all fighters
+          </button>
           <button @click=${() => this.hide()}>Close</button>
         </div>
+        ${this._nationPickUnitId !== null ? this.renderNationPicker() : ""}
+      </div>
+    `;
+  }
+
+  private renderNationPicker() {
+    const nations = this.enemyNations();
+    return html`
+      <hr class="divider" />
+      <div class="section-label">Select nation to hunt</div>
+      ${nations.length === 0
+        ? html`<div class="empty">No visible enemy nations</div>`
+        : html`
+            <select
+              @change=${(e: Event) => {
+                const v = (e.target as HTMLSelectElement).value;
+                if (v) this.onNationSelect(Number(v));
+              }}
+            >
+              <option value="">Choose nation…</option>
+              ${nations.map(
+                (n) => html`
+                  <option value=${String(n.smallID)}>${n.name}</option>
+                `,
+              )}
+            </select>
+          `}
+      <div class="actions">
+        <button
+          @click=${() => {
+            this._nationPickUnitId = null;
+            this._nationPickMission = null;
+          }}
+        >
+          Cancel
+        </button>
       </div>
     `;
   }
