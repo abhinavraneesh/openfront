@@ -4,6 +4,7 @@ import {
   isUnit,
   OwnerComp,
   Unit,
+  UnitMission,
   UnitParams,
   UnitType,
 } from "../game/Game";
@@ -85,6 +86,19 @@ export class FighterExecution implements Execution {
 
     const info = this.mg.config().unitInfo(UnitType.Fighter);
     const moveSpeed = info.moveSpeed ?? 4;
+    const mission = this.fighter.mission();
+
+    // STAND_DOWN: abort intercept, return home, skip all combat
+    if (mission === UnitMission.STAND_DOWN) {
+      if (this.phase === "intercept") {
+        this.fighter.setTargetUnit(undefined);
+        this.transitionTo("returning");
+      }
+      if (this.phase === "returning") {
+        this.doReturn(moveSpeed);
+      }
+      return;
+    }
 
     switch (this.phase) {
       case "patrol":
@@ -93,6 +107,7 @@ export class FighterExecution implements Execution {
           info.range ?? 50,
           info.attackRate ?? 8,
           info.damage ?? 200,
+          mission,
         );
         break;
       case "intercept":
@@ -169,12 +184,35 @@ export class FighterExecution implements Execution {
     range: number,
     attackRate: number,
     damage: number,
+    mission: UnitMission | undefined,
   ): void {
     if (this.shouldReturnHome(moveSpeed)) {
       this.transitionTo("returning");
       return;
     }
 
+    // INTERCEPT_HOME: scramble if enemy aircraft comes within 8 tiles of home base
+    if (mission === UnitMission.INTERCEPT_HOME || mission === undefined) {
+      const baseThreats = this.findAircraftNearBase(8);
+      if (baseThreats) {
+        this.fighter.setTargetUnit(baseThreats);
+        this.transitionTo("intercept");
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("show-message", {
+              detail: {
+                message: "Fighter scrambled — enemy aircraft detected",
+                duration: 3000,
+                color: "yellow",
+              },
+            }),
+          );
+        }
+        return;
+      }
+    }
+
+    // Regular patrol: react to enemies in fighter's own sensor range
     const target = this.findEnemyAircraft(range);
     if (target) {
       this.fighter.setTargetUnit(target);
@@ -182,8 +220,9 @@ export class FighterExecution implements Execution {
       return;
     }
 
+    const patrolCenter = this.patrolCenter();
     if (this.fighter.targetTile() === undefined) {
-      this.fighter.setTargetTile(this.randomPatrolTile());
+      this.fighter.setTargetTile(this.randomPatrolTile(patrolCenter));
     }
     if (this.fighter.targetTile() !== undefined) {
       this.moveToward(this.fighter.targetTile()!, moveSpeed);
@@ -197,6 +236,28 @@ export class FighterExecution implements Execution {
         this.transitionTo("patrol");
       }
     }
+  }
+
+  private patrolCenter(): TileRef {
+    if (this.fighter.mission() === UnitMission.INTERCEPT_PATROL) {
+      return this.fighter.missionTargetTile() ?? this.homeBaseTile;
+    }
+    return this.homeBaseTile;
+  }
+
+  private findAircraftNearBase(radius: number): Unit | undefined {
+    const owner = this.fighter.owner();
+    const nearby = this.mg.nearbyUnits(this.homeBaseTile, radius, AIR_TYPES);
+    for (const { unit } of nearby) {
+      if (
+        unit !== this.fighter &&
+        unit.owner() !== owner &&
+        owner.canAttackPlayer(unit.owner(), true)
+      ) {
+        return unit;
+      }
+    }
+    return undefined;
   }
 
   private doIntercept(
@@ -282,17 +343,15 @@ export class FighterExecution implements Execution {
     return undefined;
   }
 
-  private randomPatrolTile(): TileRef {
+  private randomPatrolTile(center: TileRef = this.homeBaseTile): TileRef {
     const range = 60;
     const mg = this.mg;
     for (let i = 0; i < 50; i++) {
-      const x =
-        mg.x(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
-      const y =
-        mg.y(this.homeBaseTile) + this.random.nextInt(-range / 2, range / 2);
+      const x = mg.x(center) + this.random.nextInt(-range / 2, range / 2);
+      const y = mg.y(center) + this.random.nextInt(-range / 2, range / 2);
       if (mg.isValidCoord(x, y)) return mg.ref(x, y);
     }
-    return this.homeBaseTile;
+    return center;
   }
 
   isActive(): boolean {
