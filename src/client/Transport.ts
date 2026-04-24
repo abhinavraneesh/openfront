@@ -202,6 +202,9 @@ export class ShowAirbasePanelEvent implements GameEvent {
   constructor(public readonly unitId: number) {}
 }
 
+// Client-side: toggle the Fleet panel
+export class ShowFleetPanelEvent implements GameEvent {}
+
 export class Transport {
   private socket: WebSocket | null = null;
 

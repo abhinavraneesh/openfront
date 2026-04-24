@@ -18,6 +18,7 @@ import { CoordinateGridLayer } from "./layers/CoordinateGridLayer";
 import { DynamicUILayer } from "./layers/DynamicUILayer";
 import { EmojiTable } from "./layers/EmojiTable";
 import { EventsDisplay } from "./layers/EventsDisplay";
+import { FleetPanel } from "./layers/FleetPanel";
 import { FxLayer } from "./layers/FxLayer";
 import { GameLeftSidebar } from "./layers/GameLeftSidebar";
 import { GameRightSidebar } from "./layers/GameRightSidebar";
@@ -247,6 +248,13 @@ export function createRenderer(
   airbaseMissionPanel.eventBus = eventBus;
   airbaseMissionPanel.transformHandler = transformHandler;
 
+  const fleetPanel = document.querySelector("fleet-panel") as FleetPanel;
+  if (!(fleetPanel instanceof FleetPanel)) {
+    console.error("fleet panel not found");
+  }
+  fleetPanel.game = game;
+  fleetPanel.eventBus = eventBus;
+
   const structureLayer = new StructureLayer(game, eventBus, transformHandler);
   const samRadiusLayer = new SAMRadiusLayer(game, eventBus, uiState);
 
@@ -339,6 +347,7 @@ export function createRenderer(
     performanceOverlay,
     targetingCursor,
     airbaseMissionPanel,
+    fleetPanel,
   ];
 
   return new GameRenderer(
