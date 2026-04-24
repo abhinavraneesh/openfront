@@ -480,7 +480,7 @@ export class DefaultConfig implements Config {
           damage: 150,
           attackRate: 10,
           range: 100,
-          constructionDuration: this.instantBuild() ? 0 : 20,
+          constructionDuration: this.instantBuild() ? 0 : 120,
         };
         break;
       case UnitType.Cruiser:
@@ -490,7 +490,7 @@ export class DefaultConfig implements Config {
           damage: 300,
           attackRate: 8,
           range: 110,
-          constructionDuration: this.instantBuild() ? 0 : 30,
+          constructionDuration: this.instantBuild() ? 0 : 200,
         };
         break;
       case UnitType.Battleship:
@@ -500,7 +500,7 @@ export class DefaultConfig implements Config {
           damage: 350,
           attackRate: 15,
           range: 150,
-          constructionDuration: this.instantBuild() ? 0 : 50,
+          constructionDuration: this.instantBuild() ? 0 : 400,
         };
         break;
       case UnitType.Submarine:
@@ -510,21 +510,21 @@ export class DefaultConfig implements Config {
           damage: 500,
           attackRate: 35,
           range: 90,
-          constructionDuration: this.instantBuild() ? 0 : 40,
+          constructionDuration: this.instantBuild() ? 0 : 250,
         };
         break;
       case UnitType.Minelayer:
         info = {
           cost: this.costWrapper(() => 80_000, UnitType.Minelayer),
           maxHealth: 300,
-          constructionDuration: this.instantBuild() ? 0 : 15,
+          constructionDuration: this.instantBuild() ? 0 : 80,
         };
         break;
       case UnitType.Airbase:
         info = {
           cost: this.costWrapper(() => 500_000, UnitType.Airbase),
           maxHealth: 1500,
-          constructionDuration: this.instantBuild() ? 0 : 3 * 10,
+          constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;
       case UnitType.Fighter:
@@ -536,7 +536,7 @@ export class DefaultConfig implements Config {
           range: 50,
           moveSpeed: 4,
           maxFuel: 80,
-          constructionDuration: this.instantBuild() ? 0 : 20,
+          constructionDuration: this.instantBuild() ? 0 : 100,
         };
         break;
       case UnitType.TacticalBomber:
@@ -570,21 +570,21 @@ export class DefaultConfig implements Config {
           attackRate: 10,
           range: 40,
           moveSpeed: 2,
-          constructionDuration: this.instantBuild() ? 0 : 20,
+          constructionDuration: this.instantBuild() ? 0 : 150,
         };
         break;
       case UnitType.NavalYard:
         info = {
           cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
           maxHealth: 1200,
-          constructionDuration: this.instantBuild() ? 0 : 40,
+          constructionDuration: this.instantBuild() ? 0 : 400,
         };
         break;
       case UnitType.FuelDepot:
         info = {
           cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
           maxHealth: 600,
-          constructionDuration: this.instantBuild() ? 0 : 20,
+          constructionDuration: this.instantBuild() ? 0 : 150,
         };
         break;
       case UnitType.CoastalBattery:
@@ -594,7 +594,7 @@ export class DefaultConfig implements Config {
           damage: 250,
           attackRate: 30,
           range: 80,
-          constructionDuration: this.instantBuild() ? 0 : 25,
+          constructionDuration: this.instantBuild() ? 0 : 180,
         };
         break;
       case UnitType.Carrier:
@@ -602,7 +602,7 @@ export class DefaultConfig implements Config {
           cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
           maxHealth: 3000,
           moveSpeed: 1,
-          constructionDuration: this.instantBuild() ? 0 : 100,
+          constructionDuration: this.instantBuild() ? 0 : 600,
         };
         break;
       case UnitType.Mine:

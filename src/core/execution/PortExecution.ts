@@ -3,6 +3,14 @@ import { PseudoRandom } from "../PseudoRandom";
 import { TradeShipExecution } from "./TradeShipExecution";
 import { TrainStationExecution } from "./TrainStationExecution";
 
+// workerRatio 1.0 → 2.0×; 0.5 → 1.0×; 0.0 → 0.5× (piecewise linear)
+export function navalIncomeMultiplier(workerRatio: number): number {
+  if (workerRatio >= 0.5) {
+    return 1.0 + (workerRatio - 0.5) * 2.0;
+  }
+  return 0.5 + workerRatio * 1.0;
+}
+
 const BLOCKADE_RANGE = 30;
 const BLOCKADE_TYPES = [
   UnitType.Warship,
@@ -11,6 +19,19 @@ const BLOCKADE_TYPES = [
   UnitType.Battleship,
   UnitType.Submarine,
   UnitType.Carrier,
+] as const;
+
+// Tight siege blockade: 3+ enemy warships within 2 tiles suppresses all income
+const NAVAL_BLOCKADE_RANGE = 2;
+const NAVAL_BLOCKADE_SHIP_THRESHOLD = 3;
+const NAVAL_BLOCKADE_TYPES = [
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Carrier,
+  UnitType.Minelayer,
 ] as const;
 
 export class PortExecution implements Execution {
@@ -50,6 +71,17 @@ export class PortExecution implements Execution {
       this.createStation();
     }
 
+    // Naval trade income: bonus per tick scaled by empire size and worker ratio
+    if (!this.isNavalBlockaded()) {
+      const owner = this.port.owner();
+      const tiles = owner.numTilesOwned();
+      const bonus = Math.floor(tiles / 200) * 2;
+      if (bonus > 0) {
+        const multiplier = navalIncomeMultiplier(owner.workerRatio());
+        owner.addGold(BigInt(Math.round(bonus * multiplier)));
+      }
+    }
+
     // Only check every 10 ticks for performance.
     if ((this.mg.ticks() + this.checkOffset) % 10 !== 0) {
       return;
@@ -80,7 +112,7 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
-    if (this.isBlockaded()) {
+    if (this.isNavalBlockaded() || this.isBlockaded()) {
       const tick = this.mg.ticks();
       if (tick - this.blockadeNotifiedAt > 600) {
         this.blockadeNotifiedAt = tick;
@@ -102,6 +134,23 @@ export class PortExecution implements Execution {
         return true;
       }
       this.tradeShipSpawnRejections++;
+    }
+    return false;
+  }
+
+  private isNavalBlockaded(): boolean {
+    const owner = this.port.owner();
+    const nearby = this.mg.nearbyUnits(
+      this.port.tile(),
+      NAVAL_BLOCKADE_RANGE,
+      NAVAL_BLOCKADE_TYPES,
+    );
+    let count = 0;
+    for (const { unit } of nearby) {
+      if (unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true)) {
+        count++;
+        if (count >= NAVAL_BLOCKADE_SHIP_THRESHOLD) return true;
+      }
     }
     return false;
   }
