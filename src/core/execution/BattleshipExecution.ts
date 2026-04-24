@@ -73,7 +73,6 @@ export class BattleshipExecution implements Execution {
     const config = this.mg.config();
     const info = config.unitInfo(UnitType.Battleship);
     const range = info.range ?? 150;
-    const shoreRange = config.shoreBombardmentRange();
     const owner = this.battleship.owner();
 
     const navalTargets = this.mg.nearbyUnits(this.battleship.tile()!, range, [
@@ -88,26 +87,10 @@ export class BattleshipExecution implements Execution {
       UnitType.Carrier,
     ]);
 
-    const shoreTargets = this.mg.nearbyUnits(
-      this.battleship.tile()!,
-      shoreRange,
-      [
-        UnitType.DefensePost,
-        UnitType.CoastalBattery,
-        UnitType.Port,
-        UnitType.NavalYard,
-        UnitType.City,
-        UnitType.Factory,
-        UnitType.SAMLauncher,
-        UnitType.Airbase,
-        UnitType.MissileSilo,
-      ],
-    );
-
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
+    for (const { unit, distSquared } of navalTargets) {
       if (
         unit.owner() === owner ||
         unit === this.battleship ||
@@ -116,12 +99,9 @@ export class BattleshipExecution implements Execution {
       ) {
         continue;
       }
-      const adjustedDist = navalTargets.some((n) => n.unit === unit)
-        ? distSquared
-        : distSquared * 4;
-      if (adjustedDist < bestDist) {
+      if (distSquared < bestDist) {
         best = unit;
-        bestDist = adjustedDist;
+        bestDist = distSquared;
       }
     }
     return best;

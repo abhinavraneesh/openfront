@@ -73,7 +73,6 @@ export class CruiserExecution implements Execution {
     const config = this.mg.config();
     const info = config.unitInfo(UnitType.Cruiser);
     const range = info.range ?? 110;
-    const shoreRange = config.shoreBombardmentRange();
     const owner = this.cruiser.owner();
 
     const navalTargets = this.mg.nearbyUnits(this.cruiser.tile()!, range, [
@@ -88,20 +87,10 @@ export class CruiserExecution implements Execution {
       UnitType.Carrier,
     ]);
 
-    const shoreTargets = this.mg.nearbyUnits(this.cruiser.tile()!, shoreRange, [
-      UnitType.DefensePost,
-      UnitType.CoastalBattery,
-      UnitType.Port,
-      UnitType.NavalYard,
-      UnitType.City,
-      UnitType.Factory,
-      UnitType.SAMLauncher,
-    ]);
-
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
+    for (const { unit, distSquared } of navalTargets) {
       if (
         unit.owner() === owner ||
         unit === this.cruiser ||
@@ -110,12 +99,9 @@ export class CruiserExecution implements Execution {
       ) {
         continue;
       }
-      const adjustedDist = navalTargets.some((n) => n.unit === unit)
-        ? distSquared
-        : distSquared * 4;
-      if (adjustedDist < bestDist) {
+      if (distSquared < bestDist) {
         best = unit;
-        bestDist = adjustedDist;
+        bestDist = distSquared;
       }
     }
     return best;
@@ -147,7 +133,7 @@ export class CruiserExecution implements Execution {
   }
 
   private fireAA(): void {
-    const AA_RANGE = 70;
+    const AA_RANGE = 4;
     const AA_RATE = 10;
     const AA_DAMAGE = 80;
     if (this.mg.ticks() - this.lastAAAttack <= AA_RATE) return;

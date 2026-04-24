@@ -19,6 +19,7 @@ export class DestroyerExecution implements Execution {
   private mg: Game;
   private pathfinder: WaterPathFinder;
   private lastAttack = 0;
+  private lastASWAttack = 0;
   private alreadySentShell = new Set<Unit>();
 
   constructor(
@@ -67,13 +68,13 @@ export class DestroyerExecution implements Execution {
     if (this.destroyer.targetUnit() !== undefined) {
       this.shootTarget();
     }
+    this.fireASW();
   }
 
   private findTarget(): Unit | undefined {
     const config = this.mg.config();
     const info = config.unitInfo(UnitType.Destroyer);
     const range = info.range ?? 100;
-    const shoreRange = config.shoreBombardmentRange();
     const owner = this.destroyer.owner();
 
     const navalTargets = this.mg.nearbyUnits(this.destroyer.tile()!, range, [
@@ -88,23 +89,10 @@ export class DestroyerExecution implements Execution {
       UnitType.Carrier,
     ]);
 
-    const shoreTargets = this.mg.nearbyUnits(
-      this.destroyer.tile()!,
-      shoreRange,
-      [
-        UnitType.DefensePost,
-        UnitType.CoastalBattery,
-        UnitType.Port,
-        UnitType.NavalYard,
-        UnitType.City,
-        UnitType.Factory,
-      ],
-    );
-
     let best: Unit | undefined;
     let bestDist = Infinity;
 
-    for (const { unit, distSquared } of [...navalTargets, ...shoreTargets]) {
+    for (const { unit, distSquared } of navalTargets) {
       if (
         unit.owner() === owner ||
         unit === this.destroyer ||
@@ -113,16 +101,43 @@ export class DestroyerExecution implements Execution {
       ) {
         continue;
       }
-      // Prioritize naval targets over shore targets
-      const adjustedDist = navalTargets.some((n) => n.unit === unit)
-        ? distSquared
-        : distSquared * 4;
-      if (adjustedDist < bestDist) {
+      if (distSquared < bestDist) {
         best = unit;
-        bestDist = adjustedDist;
+        bestDist = distSquared;
       }
     }
     return best;
+  }
+
+  private fireASW(): void {
+    const ASW_RANGE = 3;
+    const ASW_RATE = 3;
+    if (this.mg.ticks() - this.lastASWAttack <= ASW_RATE) return;
+
+    const owner = this.destroyer.owner();
+    const subs = this.mg.nearbyUnits(this.destroyer.tile()!, ASW_RANGE, [
+      UnitType.Submarine,
+    ]);
+
+    for (const { unit } of subs) {
+      if (unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true)) {
+        this.lastASWAttack = this.mg.ticks();
+        const info = this.mg.config().unitInfo(UnitType.Destroyer);
+        const multiplier = this.mg
+          .config()
+          .combatMultiplier(UnitType.Destroyer, UnitType.Submarine);
+        this.mg.addExecution(
+          new NavalShellExecution(
+            this.destroyer.tile(),
+            owner,
+            this.destroyer,
+            unit,
+            Math.round((info.damage ?? 150) * multiplier),
+          ),
+        );
+        return;
+      }
+    }
   }
 
   private shootTarget() {
