@@ -6,6 +6,7 @@ import {
   Gold,
   PlayerID,
   Tick,
+  UnitMission,
   UnitType,
 } from "../core/game/Game";
 import { TileRef } from "../core/game/GameMap";
@@ -177,6 +178,25 @@ export class SetWorkerRatioIntentEvent implements GameEvent {
   constructor(public readonly ratio: number) {}
 }
 
+export class SetUnitMissionIntentEvent implements GameEvent {
+  constructor(
+    public readonly unitId: number,
+    public readonly mission: UnitMission,
+    public readonly targetTile?: TileRef,
+    public readonly targetUnitId?: number,
+  ) {}
+}
+
+// Emitted to request tile-picking mode; callback fires with the selected tile
+export class StartTargetingModeEvent implements GameEvent {
+  constructor(
+    public readonly label: string,
+    public readonly onTileSelected: (tile: TileRef) => void,
+  ) {}
+}
+
+export class StopTargetingModeEvent implements GameEvent {}
+
 export class Transport {
   private socket: WebSocket | null = null;
 
@@ -269,6 +289,10 @@ export class Transport {
 
     this.eventBus.on(SetWorkerRatioIntentEvent, (e) =>
       this.onSetWorkerRatioIntent(e),
+    );
+
+    this.eventBus.on(SetUnitMissionIntentEvent, (e) =>
+      this.onSetUnitMissionIntent(e),
     );
   }
 
@@ -656,6 +680,16 @@ export class Transport {
     this.sendIntent({
       type: "set_worker_ratio",
       ratio: event.ratio,
+    });
+  }
+
+  private onSetUnitMissionIntent(event: SetUnitMissionIntentEvent) {
+    this.sendIntent({
+      type: "set_unit_mission",
+      unitId: event.unitId,
+      mission: event.mission,
+      targetTile: event.targetTile,
+      targetUnitId: event.targetUnitId,
     });
   }
 

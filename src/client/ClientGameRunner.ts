@@ -45,6 +45,8 @@ import {
   SendHashEvent,
   SendSpawnIntentEvent,
   SendUpgradeStructureIntentEvent,
+  StartTargetingModeEvent,
+  StopTargetingModeEvent,
   Transport,
 } from "./Transport";
 import { createCanvas } from "./Utils";
@@ -285,6 +287,7 @@ async function createClientGame(
 export class ClientGameRunner {
   private myPlayer: PlayerView | null = null;
   private isActive = false;
+  private targetingCallback: ((tile: TileRef) => void) | null = null;
 
   private turnsSeen = 0;
   private lastMousePosition: { x: number; y: number } | null = null;
@@ -372,6 +375,12 @@ export class ClientGameRunner {
 
     this.eventBus.on(MouseUpEvent, this.inputEvent.bind(this));
     this.eventBus.on(MouseMoveEvent, this.onMouseMove.bind(this));
+    this.eventBus.on(StartTargetingModeEvent, (e) => {
+      this.targetingCallback = e.onTileSelected;
+    });
+    this.eventBus.on(StopTargetingModeEvent, () => {
+      this.targetingCallback = null;
+    });
     this.eventBus.on(AutoUpgradeEvent, this.autoUpgradeEvent.bind(this));
     this.eventBus.on(
       DoBoatAttackEvent,
@@ -563,8 +572,18 @@ export class ClientGameRunner {
     if (!this.gameView.isValidCoord(cell.x, cell.y)) {
       return;
     }
-    console.log(`clicked cell ${cell}`);
     const tile = this.gameView.ref(cell.x, cell.y);
+
+    // Targeting mode: route click to the requester and stop normal processing
+    if (this.targetingCallback !== null) {
+      const cb = this.targetingCallback;
+      this.targetingCallback = null;
+      this.eventBus.emit(new StopTargetingModeEvent());
+      cb(tile);
+      return;
+    }
+
+    console.log(`clicked cell ${cell}`);
     if (
       this.gameView.isLand(tile) &&
       !this.gameView.hasOwner(tile) &&

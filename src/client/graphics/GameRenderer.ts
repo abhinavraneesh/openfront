@@ -39,6 +39,7 @@ import { SettingsModal } from "./layers/SettingsModal";
 import { SpawnTimer } from "./layers/SpawnTimer";
 import { StructureIconsLayer } from "./layers/StructureIconsLayer";
 import { StructureLayer } from "./layers/StructureLayer";
+import { TargetingCursor } from "./layers/TargetingCursor";
 import { TeamStats } from "./layers/TeamStats";
 import { TerrainLayer } from "./layers/TerrainLayer";
 import { TerritoryLayer } from "./layers/TerritoryLayer";
@@ -227,6 +228,14 @@ export function createRenderer(
   }
   headsUpMessage.game = game;
 
+  const targetingCursor = document.querySelector(
+    "targeting-cursor",
+  ) as TargetingCursor;
+  if (!(targetingCursor instanceof TargetingCursor)) {
+    console.error("targeting cursor not found");
+  }
+  targetingCursor.eventBus = eventBus;
+
   const structureLayer = new StructureLayer(game, eventBus, transformHandler);
   const samRadiusLayer = new SAMRadiusLayer(game, eventBus, uiState);
 
@@ -317,6 +326,7 @@ export function createRenderer(
     inGamePromo,
     alertFrame,
     performanceOverlay,
+    targetingCursor,
   ];
 
   return new GameRenderer(

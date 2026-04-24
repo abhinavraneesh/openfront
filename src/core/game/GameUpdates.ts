@@ -10,6 +10,7 @@ import {
   Team,
   Tick,
   TrainType,
+  UnitMission,
   UnitType,
 } from "./Game";
 import { TileRef } from "./GameMap";
@@ -149,6 +150,9 @@ export interface UnitUpdate {
   hasTrainStation: boolean;
   trainType?: TrainType; // Only for trains
   loaded?: boolean; // Only for trains
+  mission?: UnitMission;
+  missionTargetTile?: TileRef;
+  missionTargetUnitId?: number;
 }
 
 export interface AttackUpdate {

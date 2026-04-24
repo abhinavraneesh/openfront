@@ -8,6 +8,7 @@ import {
   TrajectoryTile,
   Unit,
   UnitInfo,
+  UnitMission,
   UnitType,
 } from "./Game";
 import { GameImpl } from "./GameImpl";
@@ -42,6 +43,9 @@ export class UnitImpl implements Unit {
   private _trajectoryIndex: number = 0;
   private _trajectory: TrajectoryTile[];
   private _deletionAt: number | null = null;
+  private _mission: UnitMission | undefined = undefined;
+  private _missionTargetTile: TileRef | undefined = undefined;
+  private _missionTargetUnitId: number | undefined = undefined;
 
   constructor(
     private _type: UnitType,
@@ -114,6 +118,31 @@ export class UnitImpl implements Unit {
     return this._patrolTile;
   }
 
+  mission(): UnitMission | undefined {
+    return this._mission;
+  }
+
+  setMission(m: UnitMission | undefined): void {
+    this._mission = m;
+    this.mg.addUpdate(this.toUpdate());
+  }
+
+  missionTargetTile(): TileRef | undefined {
+    return this._missionTargetTile;
+  }
+
+  setMissionTargetTile(tile: TileRef | undefined): void {
+    this._missionTargetTile = tile;
+  }
+
+  missionTargetUnitId(): number | undefined {
+    return this._missionTargetUnitId;
+  }
+
+  setMissionTargetUnitId(id: number | undefined): void {
+    this._missionTargetUnitId = id;
+  }
+
   isUnit(): this is Unit {
     return true;
   }
@@ -156,6 +185,9 @@ export class UnitImpl implements Unit {
       hasTrainStation: this._hasTrainStation,
       trainType: this._trainType,
       loaded: this._loaded,
+      mission: this._mission,
+      missionTargetTile: this._missionTargetTile,
+      missionTargetUnitId: this._missionTargetUnitId,
     };
   }
 

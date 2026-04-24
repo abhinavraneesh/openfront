@@ -345,6 +345,25 @@ export enum TrainType {
   Carriage = "Carriage",
 }
 
+export enum UnitMission {
+  // Air unit missions
+  INTERCEPT_HOME = "intercept_home", // Fighter: auto-scramble from home base
+  INTERCEPT_PATROL = "intercept_patrol", // Fighter: patrol a specific tile
+  STAND_DOWN = "stand_down", // Any: stay docked, do nothing
+  STRIKE_TARGET = "strike_target", // TacBomber: precision strike missionTargetTile
+  CLUSTER_STRIKE = "cluster_strike", // StratBomber: cluster bomb missionTargetTile
+  CAS_NATION = "cas_nation", // AttackHeli: hunt troops of missionTargetUnitId (player smallID)
+  ATTACK_TILE = "attack_tile", // AttackHeli: attack specific tile
+  // Ship missions
+  AUTO = "auto", // Ships: default autonomous patrol (current behavior)
+  MOVE_TO_TILE = "move_to_tile", // Ships: pathfind to tile then hold
+  PATROL_AREA = "patrol_area", // Ships: 2-tile radius patrol around missionTargetTile
+  BOMBARD_COAST = "bombard_coast", // Cruiser/BB: bombard missionTargetTile
+  ESCORT_UNIT = "escort_unit", // Ships: follow missionTargetUnitId unit
+  ATTACK_SHIP = "attack_ship", // Ships: engage missionTargetUnitId unit
+  RETURN_TO_PORT = "return_to_port", // Ships: dock at home port
+}
+
 export const Nukes = unitTypeGroup([
   UnitType.AtomBomb,
   UnitType.HydrogenBomb,
@@ -730,6 +749,14 @@ export interface Unit {
   // Warships
   setPatrolTile(tile: TileRef): void;
   patrolTile(): TileRef | undefined;
+
+  // Mission system
+  mission(): UnitMission | undefined;
+  setMission(m: UnitMission | undefined): void;
+  missionTargetTile(): TileRef | undefined;
+  setMissionTargetTile(tile: TileRef | undefined): void;
+  missionTargetUnitId(): number | undefined;
+  setMissionTargetUnitId(id: number | undefined): void;
 }
 
 export interface TerraNullius {
