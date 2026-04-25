@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { NavalShellExecution } from "./NavalShellExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class BattleshipExecution implements Execution {
   private random: PseudoRandom;
@@ -20,6 +21,7 @@ export class BattleshipExecution implements Execution {
   private pathfinder: WaterPathFinder;
   private lastAttack = 0;
   private alreadySentShell = new Set<Unit>();
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Battleship> & OwnerComp) | Unit,
@@ -61,11 +63,34 @@ export class BattleshipExecution implements Execution {
       this.battleship.modifyHealth(1);
     }
 
-    this.battleship.setTargetUnit(this.findTarget());
-    this.patrol();
+    if (this.missionRunner === null) {
+      const info = this.mg.config().unitInfo(UnitType.Battleship);
+      this.missionRunner = new ShipMissionRunner(
+        this.battleship,
+        this.mg,
+        this.pathfinder,
+        this.random,
+        {
+          shipType: UnitType.Battleship,
+          baseDamage: Number(info.damage ?? 400),
+          attackRate: info.attackRate ?? 25,
+          range: info.range ?? 150,
+        },
+      );
+    }
+    const result = this.missionRunner.run();
 
-    if (this.battleship.targetUnit() !== undefined) {
-      this.shootTarget();
+    if (result === "auto") {
+      this.battleship.setTargetUnit(this.findTarget());
+      this.patrol();
+      if (this.battleship.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    } else if (result === "movement") {
+      this.battleship.setTargetUnit(this.findTarget());
+      if (this.battleship.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
     }
   }
 

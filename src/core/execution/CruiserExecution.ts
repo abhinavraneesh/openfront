@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { NavalShellExecution } from "./NavalShellExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class CruiserExecution implements Execution {
   private random: PseudoRandom;
@@ -21,6 +22,7 @@ export class CruiserExecution implements Execution {
   private lastAttack = 0;
   private lastAAAttack = 0;
   private alreadySentShell = new Set<Unit>();
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Cruiser> & OwnerComp) | Unit,
@@ -60,12 +62,36 @@ export class CruiserExecution implements Execution {
       this.cruiser.modifyHealth(1);
     }
 
-    this.cruiser.setTargetUnit(this.findTarget());
-    this.patrol();
-
-    if (this.cruiser.targetUnit() !== undefined) {
-      this.shootTarget();
+    if (this.missionRunner === null) {
+      const info = this.mg.config().unitInfo(UnitType.Cruiser);
+      this.missionRunner = new ShipMissionRunner(
+        this.cruiser,
+        this.mg,
+        this.pathfinder,
+        this.random,
+        {
+          shipType: UnitType.Cruiser,
+          baseDamage: Number(info.damage ?? 200),
+          attackRate: info.attackRate ?? 20,
+          range: info.range ?? 110,
+        },
+      );
     }
+    const result = this.missionRunner.run();
+
+    if (result === "auto") {
+      this.cruiser.setTargetUnit(this.findTarget());
+      this.patrol();
+      if (this.cruiser.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    } else if (result === "movement") {
+      this.cruiser.setTargetUnit(this.findTarget());
+      if (this.cruiser.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    }
+    // AA always fires (point-defense).
     this.fireAA();
   }
 

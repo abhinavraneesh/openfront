@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { ShellExecution } from "./ShellExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class WarshipExecution implements Execution {
   private random: PseudoRandom;
@@ -20,6 +21,7 @@ export class WarshipExecution implements Execution {
   private pathfinder: WaterPathFinder;
   private lastShellAttack = 0;
   private alreadySentShell = new Set<Unit>();
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Warship> & OwnerComp) | Unit,
@@ -61,17 +63,40 @@ export class WarshipExecution implements Execution {
       this.warship.modifyHealth(1);
     }
 
-    this.warship.setTargetUnit(this.findTargetUnit());
-    if (this.warship.targetUnit()?.type() === UnitType.TradeShip) {
-      this.huntDownTradeShip();
-      return;
+    if (this.missionRunner === null) {
+      const info = this.mg.config().unitInfo(UnitType.Warship);
+      this.missionRunner = new ShipMissionRunner(
+        this.warship,
+        this.mg,
+        this.pathfinder,
+        this.random,
+        {
+          shipType: UnitType.Warship,
+          baseDamage: Number(info.damage ?? 250),
+          attackRate: info.attackRate ?? 20,
+          range: info.range ?? 100,
+        },
+      );
     }
+    const result = this.missionRunner.run();
 
-    this.patrol();
-
-    if (this.warship.targetUnit() !== undefined) {
-      this.shootTarget();
-      return;
+    if (result === "auto") {
+      this.warship.setTargetUnit(this.findTargetUnit());
+      if (this.warship.targetUnit()?.type() === UnitType.TradeShip) {
+        this.huntDownTradeShip();
+        return;
+      }
+      this.patrol();
+      if (this.warship.targetUnit() !== undefined) {
+        this.shootTarget();
+        return;
+      }
+    } else if (result === "movement") {
+      // Allow opportunistic combat against any threats while on mission.
+      this.warship.setTargetUnit(this.findTargetUnit());
+      if (this.warship.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
     }
   }
 

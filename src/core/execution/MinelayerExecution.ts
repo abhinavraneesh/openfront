@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { MineExecution } from "./MineExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 const MINE_INTERVAL = 20;
 const MAX_MINES = 10;
@@ -22,6 +23,7 @@ export class MinelayerExecution implements Execution {
   private mg: Game;
   private pathfinder: WaterPathFinder;
   private lastMineTick = 0;
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Minelayer> & OwnerComp) | Unit,
@@ -63,7 +65,23 @@ export class MinelayerExecution implements Execution {
       this.minelayer.modifyHealth(1);
     }
 
-    this.patrol();
+    this.missionRunner ??= new ShipMissionRunner(
+      this.minelayer,
+      this.mg,
+      this.pathfinder,
+      this.random,
+      {
+        shipType: UnitType.Minelayer,
+        baseDamage: 0,
+        attackRate: 999,
+        range: 1,
+      },
+    );
+    const result = this.missionRunner.run();
+    if (result === "auto") {
+      this.patrol();
+    }
+    // Mines are laid regardless of mission — they fire from current position.
     this.maybeLayMine();
   }
 

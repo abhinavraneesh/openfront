@@ -11,12 +11,14 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class CarrierExecution implements Execution {
   private carrier: Unit;
   private mg: Game;
   private pathfinder: WaterPathFinder;
   private random: PseudoRandom;
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Carrier> & OwnerComp) | Unit,
@@ -53,7 +55,22 @@ export class CarrierExecution implements Execution {
     }
 
     // Heal slightly if owner has a NavalYard (handled by NavalYardExecution)
-    this.patrol();
+    this.missionRunner ??= new ShipMissionRunner(
+      this.carrier,
+      this.mg,
+      this.pathfinder,
+      this.random,
+      {
+        shipType: UnitType.Carrier,
+        baseDamage: 0, // Carriers don't shoot
+        attackRate: 999,
+        range: 1,
+      },
+    );
+    const result = this.missionRunner.run();
+    if (result === "auto") {
+      this.patrol();
+    }
   }
 
   private patrol(): void {

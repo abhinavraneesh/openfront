@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { NavalShellExecution } from "./NavalShellExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 // Submarines prefer high-value capital ships as targets.
 const SUBMARINE_PRIORITY_TARGETS: UnitType[] = [
@@ -27,6 +28,7 @@ export class SubmarineExecution implements Execution {
   private pathfinder: WaterPathFinder;
   private lastAttack = 0;
   private alreadySentShell = new Set<Unit>();
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Submarine> & OwnerComp) | Unit,
@@ -68,11 +70,34 @@ export class SubmarineExecution implements Execution {
       this.submarine.modifyHealth(1);
     }
 
-    this.submarine.setTargetUnit(this.findTarget());
-    this.patrol();
+    if (this.missionRunner === null) {
+      const info = this.mg.config().unitInfo(UnitType.Submarine);
+      this.missionRunner = new ShipMissionRunner(
+        this.submarine,
+        this.mg,
+        this.pathfinder,
+        this.random,
+        {
+          shipType: UnitType.Submarine,
+          baseDamage: Number(info.damage ?? 400),
+          attackRate: info.attackRate ?? 20,
+          range: info.range ?? 90,
+        },
+      );
+    }
+    const result = this.missionRunner.run();
 
-    if (this.submarine.targetUnit() !== undefined) {
-      this.shootTarget();
+    if (result === "auto") {
+      this.submarine.setTargetUnit(this.findTarget());
+      this.patrol();
+      if (this.submarine.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    } else if (result === "movement") {
+      this.submarine.setTargetUnit(this.findTarget());
+      if (this.submarine.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
     }
   }
 
