@@ -4,6 +4,7 @@ import {
   isUnit,
   OwnerComp,
   Unit,
+  UnitMission,
   UnitParams,
   UnitType,
 } from "../game/Game";
@@ -69,6 +70,11 @@ export class StrategicBomberExecution implements Execution {
   // Set when bomber enters point-of-no-return; payload fires even if shot down
   private payloadArmed = false;
   private armedTargetTile: TileRef | null = null;
+  private stuckTicks = 0;
+  private lastTile: TileRef | null = null;
+  private missionTargetTileSeen: TileRef | null = null;
+  // Tile to bomb when on CLUSTER_STRIKE without a unit target (area strike).
+  private commandedStrikeTile: TileRef | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.StrategicBomber> & OwnerComp) | Unit,
@@ -122,6 +128,44 @@ export class StrategicBomberExecution implements Execution {
 
     const info = this.mg.config().unitInfo(UnitType.StrategicBomber);
     const moveSpeed = info.moveSpeed ?? 1;
+    const mission = this.bomber.mission();
+
+    if (mission === UnitMission.STAND_DOWN) {
+      const docked =
+        this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1;
+      if (docked) {
+        this.fuel = this.maxFuel;
+        this.phase = "idle";
+        this.idleTicks = 0;
+        return;
+      }
+      this.bomber.setTargetUnit(undefined);
+      this.payloadArmed = false;
+      this.armedTargetTile = null;
+      this.commandedStrikeTile = null;
+      this.fuel--;
+      if (this.fuel <= 0) {
+        this.bomber.delete();
+        return;
+      }
+      this.checkFuelDepotRefuel();
+      this.doReturn(moveSpeed);
+      return;
+    }
+
+    // CLUSTER_STRIKE: fly to commanded tile and bomb it (area strike).
+    if (mission === UnitMission.CLUSTER_STRIKE) {
+      const tile = this.bomber.missionTargetTile();
+      if (tile !== undefined && tile !== this.missionTargetTileSeen) {
+        this.missionTargetTileSeen = tile;
+        this.commandedStrikeTile = tile;
+        this.bomber.setTargetUnit(undefined);
+        this.phase = "outbound";
+        this.pathFinder = PathFinding.Air(this.mg);
+        this.stuckTicks = 0;
+        this.lastTile = null;
+      }
+    }
 
     switch (this.phase) {
       case "finding":
@@ -238,6 +282,21 @@ export class StrategicBomberExecution implements Execution {
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
+    // CLUSTER_STRIKE: pure tile bombing, no unit target required.
+    if (this.commandedStrikeTile !== null) {
+      const tile = this.commandedStrikeTile;
+      const dist = this.mg.manhattanDist(this.bomber.tile(), tile);
+      if (dist <= POINT_OF_NO_RETURN && !this.payloadArmed) {
+        this.payloadArmed = true;
+        this.armedTargetTile = tile;
+      }
+      this.moveToward(tile, moveSpeed);
+      if (dist <= 1) {
+        this.phase = "attacking";
+      }
+      return;
+    }
+
     const target = this.bomber.targetUnit();
     if (!target?.isActive()) {
       this.bomber.setTargetUnit(undefined);
@@ -264,13 +323,15 @@ export class StrategicBomberExecution implements Execution {
 
   private doAttack(damage: number): void {
     const target = this.bomber.targetUnit();
-    const targetTile = target?.tile() ?? this.armedTargetTile;
+    const targetTile =
+      this.commandedStrikeTile ?? target?.tile() ?? this.armedTargetTile;
     if (targetTile !== null && targetTile !== undefined) {
       this.releaseCluster(targetTile, damage);
     }
     this.bomber.setTargetUnit(undefined);
     this.payloadArmed = false;
     this.armedTargetTile = null;
+    this.commandedStrikeTile = null;
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);
   }
@@ -301,7 +362,11 @@ export class StrategicBomberExecution implements Execution {
 
     // Damage all enemy units at each landing tile
     for (const tile of landingTiles) {
-      const nearby = this.mg.nearbyUnits(tile, WARHEAD_SEARCH_RADIUS, WARHEAD_DAMAGEABLE);
+      const nearby = this.mg.nearbyUnits(
+        tile,
+        WARHEAD_SEARCH_RADIUS,
+        WARHEAD_DAMAGEABLE,
+      );
       for (const { unit } of nearby) {
         if (
           unit.owner() !== owner &&
@@ -311,10 +376,7 @@ export class StrategicBomberExecution implements Execution {
           const multiplier = this.mg
             .config()
             .combatMultiplier(UnitType.StrategicBomber, unit.type());
-          unit.modifyHealth(
-            -Math.round(damagePerWarhead * multiplier),
-            owner,
-          );
+          unit.modifyHealth(-Math.round(damagePerWarhead * multiplier), owner);
         }
       }
     }
@@ -341,6 +403,24 @@ export class StrategicBomberExecution implements Execution {
         break;
       }
     }
+    const cur = this.bomber.tile();
+    if (this.lastTile !== null && this.lastTile === cur) {
+      this.stuckTicks++;
+      if (this.stuckTicks > 12) {
+        this.stuckTicks = 0;
+        this.lastTile = null;
+        this.bomber.setTargetUnit(undefined);
+        this.commandedStrikeTile = null;
+        this.payloadArmed = false;
+        this.armedTargetTile = null;
+        this.phase = "returning";
+        this.pathFinder = PathFinding.Air(this.mg);
+        return;
+      }
+    } else {
+      this.stuckTicks = 0;
+    }
+    this.lastTile = cur;
   }
 
   isActive(): boolean {

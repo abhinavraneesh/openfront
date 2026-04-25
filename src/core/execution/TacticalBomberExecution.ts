@@ -4,6 +4,7 @@ import {
   isUnit,
   OwnerComp,
   Unit,
+  UnitMission,
   UnitParams,
   UnitType,
 } from "../game/Game";
@@ -46,6 +47,9 @@ export class TacticalBomberExecution implements Execution {
   private maxFuel = 60;
   private homeBaseTile: TileRef;
   private idleTicks = 0;
+  private stuckTicks = 0;
+  private lastTile: TileRef | null = null;
+  private missionTargetTileSeen: TileRef | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.TacticalBomber> & OwnerComp) | Unit,
@@ -92,6 +96,44 @@ export class TacticalBomberExecution implements Execution {
 
     const info = this.mg.config().unitInfo(UnitType.TacticalBomber);
     const moveSpeed = info.moveSpeed ?? 2;
+    const mission = this.bomber.mission();
+
+    // STAND_DOWN: drop target, return home, refuse new strikes.
+    if (mission === UnitMission.STAND_DOWN) {
+      const docked =
+        this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1;
+      if (docked) {
+        this.fuel = this.maxFuel;
+        this.phase = "idle";
+        this.idleTicks = 0;
+        return;
+      }
+      this.bomber.setTargetUnit(undefined);
+      this.fuel--;
+      if (this.fuel <= 0) {
+        this.bomber.delete();
+        return;
+      }
+      this.checkFuelDepotRefuel();
+      this.doReturn(moveSpeed);
+      return;
+    }
+
+    // STRIKE_TARGET: accept commanded mission tile; pick a target near it.
+    if (mission === UnitMission.STRIKE_TARGET) {
+      const tile = this.bomber.missionTargetTile();
+      if (tile !== undefined && tile !== this.missionTargetTileSeen) {
+        this.missionTargetTileSeen = tile;
+        const target = this.findTargetNearTile(tile, 8);
+        if (target) {
+          this.bomber.setTargetUnit(target);
+          this.phase = "outbound";
+          this.pathFinder = PathFinding.Air(this.mg);
+          this.stuckTicks = 0;
+          this.lastTile = null;
+        }
+      }
+    }
 
     switch (this.phase) {
       case "finding":
@@ -179,13 +221,19 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doFinding(range: number): void {
-    const owner = this.bomber.owner();
-    const candidates = this.mg.nearbyUnits(
-      this.bomber.tile()!,
-      range,
-      STRIKE_TARGETS,
-    );
+    const best = this.findTargetNearTile(this.bomber.tile()!, range);
+    if (best) {
+      this.bomber.setTargetUnit(best);
+      this.phase = "outbound";
+      this.pathFinder = PathFinding.Air(this.mg);
+      this.stuckTicks = 0;
+      this.lastTile = null;
+    }
+  }
 
+  private findTargetNearTile(near: TileRef, range: number): Unit | undefined {
+    const owner = this.bomber.owner();
+    const candidates = this.mg.nearbyUnits(near, range, STRIKE_TARGETS);
     let best: Unit | undefined;
     let bestDist = Infinity;
     for (const { unit, distSquared } of candidates) {
@@ -199,12 +247,7 @@ export class TacticalBomberExecution implements Execution {
         bestDist = distSquared;
       }
     }
-
-    if (best) {
-      this.bomber.setTargetUnit(best);
-      this.phase = "outbound";
-      this.pathFinder = PathFinding.Air(this.mg);
-    }
+    return best;
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
@@ -260,6 +303,23 @@ export class TacticalBomberExecution implements Execution {
         break;
       }
     }
+    // Pathfinding-stuck guard: if we haven't moved for many ticks, abort
+    // outbound mission so we don't drain fuel until crash.
+    const cur = this.bomber.tile();
+    if (this.lastTile !== null && this.lastTile === cur) {
+      this.stuckTicks++;
+      if (this.stuckTicks > 12) {
+        this.stuckTicks = 0;
+        this.lastTile = null;
+        this.bomber.setTargetUnit(undefined);
+        this.phase = "returning";
+        this.pathFinder = PathFinding.Air(this.mg);
+        return;
+      }
+    } else {
+      this.stuckTicks = 0;
+    }
+    this.lastTile = cur;
   }
 
   isActive(): boolean {
