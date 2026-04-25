@@ -80,7 +80,7 @@ function statusText(mission: UnitMission | undefined): string {
   switch (mission) {
     case undefined:
     case UnitMission.AUTO:
-      return "Patrolling";
+      return "Patrolling (home)";
     case UnitMission.MOVE_TO_TILE:
       return "Moving to position";
     case UnitMission.PATROL_AREA:

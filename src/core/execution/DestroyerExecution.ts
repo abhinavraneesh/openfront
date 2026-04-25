@@ -12,6 +12,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { NavalShellExecution } from "./NavalShellExecution";
+import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class DestroyerExecution implements Execution {
   private random: PseudoRandom;
@@ -21,6 +22,7 @@ export class DestroyerExecution implements Execution {
   private lastAttack = 0;
   private lastASWAttack = 0;
   private alreadySentShell = new Set<Unit>();
+  private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.Destroyer> & OwnerComp) | Unit,
@@ -62,12 +64,37 @@ export class DestroyerExecution implements Execution {
       this.destroyer.modifyHealth(1);
     }
 
-    this.destroyer.setTargetUnit(this.findTarget());
-    this.patrol();
-
-    if (this.destroyer.targetUnit() !== undefined) {
-      this.shootTarget();
+    if (this.missionRunner === null) {
+      const info = this.mg.config().unitInfo(UnitType.Destroyer);
+      this.missionRunner = new ShipMissionRunner(
+        this.destroyer,
+        this.mg,
+        this.pathfinder,
+        this.random,
+        {
+          shipType: UnitType.Destroyer,
+          baseDamage: Number(info.damage ?? 120),
+          attackRate: info.attackRate ?? 15,
+          range: info.range ?? 100,
+        },
+      );
     }
+    const result = this.missionRunner.run();
+
+    if (result === "auto") {
+      this.destroyer.setTargetUnit(this.findTarget());
+      this.patrol();
+      if (this.destroyer.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    } else if (result === "movement") {
+      // Mission handled movement; allow opportunistic combat.
+      this.destroyer.setTargetUnit(this.findTarget());
+      if (this.destroyer.targetUnit() !== undefined) {
+        this.shootTarget();
+      }
+    }
+    // "full" — mission handled both, but ASW still fires (point-defense).
     this.fireASW();
   }
 
