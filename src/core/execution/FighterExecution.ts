@@ -71,16 +71,9 @@ export class FighterExecution implements Execution {
       return;
     }
 
-    this.fuel--;
-    if (this.fuel <= 0) {
-      this.fighter.delete();
-      return;
-    }
-
-    this.checkFuelDepotRefuel();
-
+    // Home base destroyed — fighter is lost.
     if (!this.isHomeBaseAlive()) {
-      this.fuel = 0;
+      this.fighter.delete();
       return;
     }
 
@@ -88,17 +81,36 @@ export class FighterExecution implements Execution {
     const moveSpeed = info.moveSpeed ?? 4;
     const mission = this.fighter.mission();
 
-    // STAND_DOWN: abort intercept, return home, skip all combat
+    // STAND_DOWN: if already docked, hold position and burn no fuel.
+    // If airborne, return home (fuel still ticks during return).
     if (mission === UnitMission.STAND_DOWN) {
-      if (this.phase === "intercept") {
+      const docked =
+        this.mg.manhattanDist(this.fighter.tile(), this.homeBaseTile) <= 1;
+      if (docked) {
+        this.fuel = this.maxFuel;
+        return;
+      }
+      if (this.phase === "intercept" || this.phase === "patrol") {
         this.fighter.setTargetUnit(undefined);
         this.transitionTo("returning");
       }
-      if (this.phase === "returning") {
-        this.doReturn(moveSpeed);
+      this.fuel--;
+      if (this.fuel <= 0) {
+        this.fighter.delete();
+        return;
       }
+      this.checkFuelDepotRefuel();
+      this.doReturn(moveSpeed);
       return;
     }
+
+    // Burn fuel while airborne on any other mission.
+    this.fuel--;
+    if (this.fuel <= 0) {
+      this.fighter.delete();
+      return;
+    }
+    this.checkFuelDepotRefuel();
 
     switch (this.phase) {
       case "patrol":
