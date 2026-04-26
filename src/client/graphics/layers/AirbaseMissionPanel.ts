@@ -187,10 +187,9 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
       return;
     }
 
-    // Click elsewhere hides the panel. Clicks inside the panel don't
-    // reach MouseUpEvent because the panel is a fixed overlay
-    // receiving pointer events directly.
-    if (!this._hidden) this.hide();
+    // Click elsewhere does NOT hide the panel — the user needs to be able
+    // to pan/zoom the map while the mission panel is open. Close via the
+    // ✕ button or Escape key instead.
   }
 
   private show(unitId: number) {
@@ -566,7 +565,11 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
             (e.target as HTMLSelectElement).value = "";
           }}
         >
-          <option value="">Set mission…</option>
+          <option value="">
+            ${currentMission !== undefined
+              ? `Current: ${statusText(currentMission)}`
+              : "Set mission…"}
+          </option>
           ${options.map(
             (o) => html`
               <option value=${o.mission}>

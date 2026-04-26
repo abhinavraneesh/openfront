@@ -92,7 +92,8 @@ export class TacticalBomberExecution implements Execution {
       return;
     }
 
-    if (!this.isHomeBaseAlive()) {
+    // Find the nearest live friendly airbase/carrier; only delete if none exist.
+    if (!this.updateHomeBase()) {
       this.bomber.delete();
       return;
     }
@@ -184,22 +185,36 @@ export class TacticalBomberExecution implements Execution {
     }
   }
 
-  private isHomeBaseAlive(): boolean {
+  /**
+   * Find the nearest live friendly airbase or carrier and update homeBaseTile.
+   * Returns false only when no friendly airbase or carrier exists anywhere.
+   */
+  private updateHomeBase(): boolean {
     const owner = this.bomber.owner();
-    const nearAirbase = this.mg.nearbyUnits(this.homeBaseTile, 3, [
-      UnitType.Airbase,
-    ]);
-    if (
-      nearAirbase.some(
-        ({ unit }) =>
-          unit.owner() === owner &&
-          unit.isActive() &&
-          !unit.isUnderConstruction(),
-      )
-    ) {
-      return true;
+    const here = this.bomber.tile();
+    let best: TileRef | undefined;
+    let bestDist = Infinity;
+
+    for (const u of owner.units(UnitType.Airbase)) {
+      if (!u.isActive() || u.isUnderConstruction()) continue;
+      const d = this.mg.euclideanDistSquared(here, u.tile());
+      if (d < bestDist) {
+        best = u.tile();
+        bestDist = d;
+      }
     }
-    return owner.units(UnitType.Carrier).some((u) => u.isActive());
+    for (const u of owner.units(UnitType.Carrier)) {
+      if (!u.isActive()) continue;
+      const d = this.mg.euclideanDistSquared(here, u.tile());
+      if (d < bestDist) {
+        best = u.tile();
+        bestDist = d;
+      }
+    }
+
+    if (best === undefined) return false;
+    this.homeBaseTile = best;
+    return true;
   }
 
   private findNearestCarrier(): Unit | undefined {

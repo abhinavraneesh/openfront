@@ -4,12 +4,11 @@ import { EventBus } from "../../../core/EventBus";
 import { UnitMission, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameView, UnitView } from "../../../core/game/GameView";
-import { CloseViewEvent, MouseDownEvent } from "../../InputHandler";
+import { CloseViewEvent } from "../../InputHandler";
 import {
   SetUnitMissionIntentEvent,
   ShowFleetPanelEvent,
   StartTargetingModeEvent,
-  StopTargetingModeEvent,
 } from "../../Transport";
 import { Layer } from "./Layer";
 import { GoToPositionEvent } from "./Leaderboard";
@@ -148,26 +147,14 @@ export class FleetPanel extends LitElement implements Layer {
 
   @state() private _hidden = true;
   @state() private _tickCounter = 0;
-  private _targetingActive = false;
 
   init() {
     this.eventBus.on(ShowFleetPanelEvent, () => this.toggle());
     this.eventBus.on(CloseViewEvent, () => this.hide());
-    this.eventBus.on(MouseDownEvent, () => {
-      // Map clicks close the panel; clicks inside the panel don't bubble
-      // up to MouseDownEvent because it absorbs pointer events. Suppress
-      // close while a tile-picking flow is committing.
-      if (this._targetingActive) return;
-      if (!this._hidden) this.hide();
-    });
-    this.eventBus.on(StartTargetingModeEvent, () => {
-      this._targetingActive = true;
-    });
-    this.eventBus.on(StopTargetingModeEvent, () => {
-      setTimeout(() => {
-        this._targetingActive = false;
-      }, 0);
-    });
+    // Note: We deliberately do NOT close the fleet panel on map clicks.
+    // Users need to be able to pan and zoom the map while reviewing the
+    // fleet. Close via the ✕ button, Escape key, or by toggling the
+    // fleet shortcut again.
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !this._hidden) this.hide();
     });
@@ -484,7 +471,7 @@ export class FleetPanel extends LitElement implements Layer {
             (e.target as HTMLSelectElement).value = "";
           }}
         >
-          <option value="">Set mission…</option>
+          <option value="">Current: ${statusText(currentMission)}</option>
           ${options.map((o) => {
             const applies = missionApplies(o, ship.type());
             return html`
