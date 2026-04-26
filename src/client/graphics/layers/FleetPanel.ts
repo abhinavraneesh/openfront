@@ -9,6 +9,7 @@ import {
   SetUnitMissionIntentEvent,
   ShowFleetPanelEvent,
   StartTargetingModeEvent,
+  StopTargetingModeEvent,
 } from "../../Transport";
 import { Layer } from "./Layer";
 import { GoToPositionEvent } from "./Leaderboard";
@@ -147,14 +148,25 @@ export class FleetPanel extends LitElement implements Layer {
 
   @state() private _hidden = true;
   @state() private _tickCounter = 0;
+  private _targetingActive = false;
 
   init() {
     this.eventBus.on(ShowFleetPanelEvent, () => this.toggle());
     this.eventBus.on(CloseViewEvent, () => this.hide());
     this.eventBus.on(MouseDownEvent, () => {
       // Map clicks close the panel; clicks inside the panel don't bubble
-      // up to MouseDownEvent because it absorbs pointer events.
+      // up to MouseDownEvent because it absorbs pointer events. Suppress
+      // close while a tile-picking flow is committing.
+      if (this._targetingActive) return;
       if (!this._hidden) this.hide();
+    });
+    this.eventBus.on(StartTargetingModeEvent, () => {
+      this._targetingActive = true;
+    });
+    this.eventBus.on(StopTargetingModeEvent, () => {
+      setTimeout(() => {
+        this._targetingActive = false;
+      }, 0);
     });
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !this._hidden) this.hide();

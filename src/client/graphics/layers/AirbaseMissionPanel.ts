@@ -10,6 +10,7 @@ import {
   SetUnitMissionIntentEvent,
   ShowAirbasePanelEvent,
   StartTargetingModeEvent,
+  StopTargetingModeEvent,
 } from "../../Transport";
 import { TransformHandler } from "../TransformHandler";
 import { Layer } from "./Layer";
@@ -129,11 +130,25 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
   @state() private _tickCounter = 0;
   @state() private _nationPickUnitId: number | null = null;
   @state() private _nationPickMission: UnitMission | null = null;
+  // When a tile-picking flow is in progress we suppress the next outside-click
+  // hide so the panel stays open after the targeting click commits.
+  private _targetingActive = false;
 
   init() {
     this.eventBus.on(ShowAirbasePanelEvent, (e) => this.show(e.unitId));
     this.eventBus.on(CloseViewEvent, () => this.hide());
     this.eventBus.on(MouseUpEvent, (e) => this.onMouseUp(e));
+    this.eventBus.on(StartTargetingModeEvent, () => {
+      this._targetingActive = true;
+    });
+    this.eventBus.on(StopTargetingModeEvent, () => {
+      // Defer clearing one tick so the MouseUpEvent that ends targeting
+      // also gets ignored by this panel (StopTargetingMode is emitted
+      // before MouseUpEvent reaches our listener in some orderings).
+      setTimeout(() => {
+        this._targetingActive = false;
+      }, 0);
+    });
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !this._hidden) this.hide();
     });
@@ -147,6 +162,9 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
   }
 
   private onMouseUp(e: MouseUpEvent) {
+    // Don't process clicks while a tile-picking flow is committing — the
+    // click belongs to that flow, not to airbase selection / panel hide.
+    if (this._targetingActive) return;
     const cell = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
     if (!this.game.isValidCoord(cell.x, cell.y)) return;
     const clickRef = this.game.ref(cell.x, cell.y);

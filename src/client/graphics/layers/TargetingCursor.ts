@@ -20,10 +20,12 @@ export class TargetingCursor extends LitElement implements Layer {
     this.eventBus.on(StartTargetingModeEvent, (e) => {
       this._active = true;
       this._label = e.label;
+      document.body.classList.add("targeting-active");
     });
     this.eventBus.on(StopTargetingModeEvent, () => {
       this._active = false;
       this._label = "";
+      document.body.classList.remove("targeting-active");
     });
 
     // Cancel on Escape key
@@ -31,6 +33,7 @@ export class TargetingCursor extends LitElement implements Layer {
       if (e.key === "Escape" && this._active) {
         this._active = false;
         this._label = "";
+        document.body.classList.remove("targeting-active");
         this.eventBus.emit(new StopTargetingModeEvent());
         this.eventBus.emit(new TargetingCancelledEvent());
       }
@@ -47,8 +50,9 @@ export class TargetingCursor extends LitElement implements Layer {
     .targeting-overlay {
       position: fixed;
       inset: 0;
-      pointer-events: all;
-      cursor: crosshair;
+      /* pointer-events: none so the click reaches the canvas below — the
+         crosshair cursor is applied to <body> via .targeting-active. */
+      pointer-events: none;
       z-index: 900;
     }
     .targeting-bar {

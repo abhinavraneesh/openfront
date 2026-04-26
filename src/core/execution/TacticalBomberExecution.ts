@@ -50,6 +50,9 @@ export class TacticalBomberExecution implements Execution {
   private stuckTicks = 0;
   private lastTile: TileRef | null = null;
   private missionTargetTileSeen: TileRef | null = null;
+  // When set, bomber is on a player-commanded strike: fly to this tile and
+  // pick a target on arrival (or any time it's in range).
+  private commandedStrikeTile: TileRef | null = null;
 
   constructor(
     private input: (UnitParams<UnitType.TacticalBomber> & OwnerComp) | Unit,
@@ -119,19 +122,30 @@ export class TacticalBomberExecution implements Execution {
       return;
     }
 
-    // STRIKE_TARGET: accept commanded mission tile; pick a target near it.
+    // STRIKE_TARGET: accept commanded mission tile. Fly toward it; the
+    // outbound logic re-scans for a target each tick so an empty initial
+    // click (or units that move) still produce a kill.
     if (mission === UnitMission.STRIKE_TARGET) {
       const tile = this.bomber.missionTargetTile();
       if (tile !== undefined && tile !== this.missionTargetTileSeen) {
         this.missionTargetTileSeen = tile;
+        this.commandedStrikeTile = tile;
+        // Pre-pick a target near the tile if one exists; otherwise fly to
+        // the tile and pick on arrival.
         const target = this.findTargetNearTile(tile, 8);
-        if (target) {
-          this.bomber.setTargetUnit(target);
-          this.phase = "outbound";
-          this.pathFinder = PathFinding.Air(this.mg);
-          this.stuckTicks = 0;
-          this.lastTile = null;
-        }
+        if (target) this.bomber.setTargetUnit(target);
+        else this.bomber.setTargetUnit(undefined);
+        this.phase = "outbound";
+        this.pathFinder = PathFinding.Air(this.mg);
+        this.stuckTicks = 0;
+        this.lastTile = null;
+      }
+    } else {
+      // Mission cleared (or non-strike) — drop commanded strike state so
+      // autonomous behavior resumes cleanly.
+      if (this.commandedStrikeTile !== null) {
+        this.commandedStrikeTile = null;
+        this.missionTargetTileSeen = null;
       }
     }
 
@@ -251,7 +265,26 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
-    const target = this.bomber.targetUnit();
+    let target = this.bomber.targetUnit();
+
+    // Player-commanded strike: fly toward the commanded tile and re-scan
+    // for any target within 8 tiles each tick. This means an empty click
+    // still results in a meaningful run — if a unit moves into range
+    // before arrival, we engage it; otherwise we continue to the tile and
+    // bomb whatever's there on arrival.
+    if (this.commandedStrikeTile !== null) {
+      if (!target?.isActive()) {
+        target = this.findTargetNearTile(this.commandedStrikeTile, 8);
+        if (target) this.bomber.setTargetUnit(target);
+      }
+      const flyTo = target?.tile() ?? this.commandedStrikeTile;
+      this.moveToward(flyTo, moveSpeed);
+      if (this.mg.manhattanDist(this.bomber.tile(), flyTo) <= 1) {
+        this.phase = "attacking";
+      }
+      return;
+    }
+
     if (!target?.isActive()) {
       this.bomber.setTargetUnit(undefined);
       this.phase = "returning";
@@ -267,7 +300,17 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doAttack(damage: number): void {
-    const target = this.bomber.targetUnit();
+    let target = this.bomber.targetUnit();
+
+    // Commanded strike with no unit target on arrival: scan a final time
+    // at point of impact for any enemy in 4 tiles.
+    if (
+      this.commandedStrikeTile !== null &&
+      (!target?.isActive() || target === undefined)
+    ) {
+      target = this.findTargetNearTile(this.commandedStrikeTile, 4);
+    }
+
     if (target?.isActive()) {
       const multiplier = this.mg
         .config()
@@ -278,6 +321,12 @@ export class TacticalBomberExecution implements Execution {
       );
     }
     this.bomber.setTargetUnit(undefined);
+    this.commandedStrikeTile = null;
+    this.missionTargetTileSeen = null;
+    // Clear the unit's mission so the player doesn't have to re-toggle to
+    // re-issue a STRIKE_TARGET on the same tile in the future.
+    this.bomber.setMission(undefined);
+    this.bomber.setMissionTargetTile(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);
   }
