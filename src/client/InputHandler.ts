@@ -4,6 +4,7 @@ import { GameView, UnitView } from "../core/game/GameView";
 import { UserSettings } from "../core/game/UserSettings";
 import { UIState } from "./graphics/UIState";
 import { Platform } from "./Platform";
+import { StartTargetingModeEvent, StopTargetingModeEvent } from "./Transport";
 import { ReplaySpeedMultiplier } from "./utilities/ReplaySpeedMultiplier";
 
 export class MouseUpEvent implements GameEvent {
@@ -166,6 +167,12 @@ export class InputHandler {
 
   private alternateView = false;
 
+  // True while a tile-picking flow is active (e.g. mission target). When set,
+  // a left click should always emit MouseUpEvent so the targeting callback
+  // can resolve, even if `leftClickOpensMenu` would otherwise route to the
+  // radial menu.
+  private targetingActive = false;
+
   private moveInterval: NodeJS.Timeout | null = null;
   private activeKeys = new Set<string>();
   private keybinds: Record<string, string> = {};
@@ -185,6 +192,13 @@ export class InputHandler {
 
   initialize() {
     this.keybinds = this.userSettings.keybinds(Platform.isMac);
+
+    this.eventBus.on(StartTargetingModeEvent, () => {
+      this.targetingActive = true;
+    });
+    this.eventBus.on(StopTargetingModeEvent, () => {
+      this.targetingActive = false;
+    });
 
     this.canvas.addEventListener("pointerdown", (e) => this.onPointerDown(e));
     window.addEventListener("pointerup", (e) => this.onPointerUp(e));
@@ -516,6 +530,7 @@ export class InputHandler {
       }
 
       if (
+        this.targetingActive ||
         !this.userSettings.leftClickOpensMenu() ||
         event.shiftKey ||
         this.gameView.inSpawnPhase() // No Radial Menu during spawn phase, only spawn point selection

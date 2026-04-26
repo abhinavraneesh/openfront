@@ -635,3 +635,10 @@ news-button .active button::after {
 .remove-player-btn:hover {
   background: #ff6666;
 }
+
+/* When a tile-picking flow is active, force a crosshair cursor everywhere
+   so the player knows the next click commits the target. */
+body.targeting-active,
+body.targeting-active * {
+  cursor: crosshair !important;
+}
