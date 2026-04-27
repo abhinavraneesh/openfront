@@ -237,6 +237,8 @@ export function createRenderer(
     console.error("targeting cursor not found");
   }
   targetingCursor.eventBus = eventBus;
+  targetingCursor.game = game;
+  targetingCursor.transformHandler = transformHandler;
 
   const airbaseMissionPanel = document.querySelector(
     "airbase-mission-panel",

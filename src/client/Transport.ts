@@ -187,11 +187,15 @@ export class SetUnitMissionIntentEvent implements GameEvent {
   ) {}
 }
 
-// Emitted to request tile-picking mode; callback fires with the selected tile
+// Emitted to request tile-picking mode; callback fires with the selected tile.
+// Optional rangeTiles + originTile draw a range circle on the map and block
+// the callback when the click is out of range.
 export class StartTargetingModeEvent implements GameEvent {
   constructor(
     public readonly label: string,
     public readonly onTileSelected: (tile: TileRef) => void,
+    public readonly rangeTiles?: number,
+    public readonly originTile?: TileRef,
   ) {}
 }
 

@@ -240,20 +240,78 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
       return;
     }
     if (opt.needsTarget) {
-      const unitId = unit.id();
+      this.startTargetingForUnit(unit, opt);
+    } else {
+      this.eventBus.emit(new SetUnitMissionIntentEvent(unit.id(), opt.mission));
+    }
+  }
+
+  /**
+   * Begin tile-picking mode for an aircraft mission.
+   * For planes with fuel, passes a range circle to the targeting overlay and
+   * blocks commits that are outside the plane's safe operating radius.
+   */
+  private startTargetingForUnit(unit: UnitView, opt: MissionOption) {
+    const unitId = unit.id();
+    const originTile = unit.tile();
+    const maxRange = this.computeAircraftRange(unit);
+
+    const label = opt.targetingLabel ?? "Select target";
+
+    const doTargeting = () => {
       this.eventBus.emit(
         new StartTargetingModeEvent(
-          opt.targetingLabel ?? "Select target",
+          label,
           (tile: TileRef) => {
+            if (
+              maxRange !== undefined &&
+              this.game.manhattanDist(originTile, tile) > maxRange
+            ) {
+              // Out of range — flash a message and re-enter targeting so the
+              // player can pick a closer tile.
+              window.dispatchEvent(
+                new CustomEvent("show-message", {
+                  detail: {
+                    message: "Target out of range — plane cannot return safely",
+                    duration: 2500,
+                    color: "red",
+                  },
+                }),
+              );
+              doTargeting();
+              return;
+            }
             this.eventBus.emit(
               new SetUnitMissionIntentEvent(unitId, opt.mission, tile),
             );
           },
+          maxRange,
+          originTile,
         ),
       );
-    } else {
-      this.eventBus.emit(new SetUnitMissionIntentEvent(unit.id(), opt.mission));
+    };
+
+    doTargeting();
+  }
+
+  /**
+   * Compute the maximum one-way range (in tiles) for a plane based on its
+   * fuel and move speed. Returns undefined for units without fuel (helicopters).
+   * Matches the bingo-fuel formula used in the execution classes.
+   */
+  private computeAircraftRange(unit: UnitView): number | undefined {
+    const info = this.game.config().unitInfo(unit.type());
+    const maxFuel = info.maxFuel;
+    if (maxFuel === undefined) return undefined; // no fuel = no range limit
+    const moveSpeed = info.moveSpeed ?? 2;
+    if (unit.type() === UnitType.Fighter) {
+      // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
+      // Max ticks outbound: (maxFuel - 8) / 3
+      return Math.floor((maxFuel - 8) / 3) * moveSpeed;
     }
+    // Bombers: shouldReturnHome: fuel <= ceil(dist/speed) + 5
+    // Max ticks outbound: (maxFuel - 5) / 2
+    return Math.floor((maxFuel - 5) / 2) * moveSpeed;
   }
 
   private onNationSelect(smallID: number) {
