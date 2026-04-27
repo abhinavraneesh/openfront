@@ -296,7 +296,34 @@ export class StrategicBomberExecution implements Execution {
     }
   }
 
+  /**
+   * Bingo-fuel check: returns true if continuing outbound would risk
+   * not having enough fuel to make it home. Once payload is armed
+   * (point-of-no-return), the strike commits regardless and the bomber
+   * accepts the loss if it can't make it back.
+   */
+  private shouldReturnHome(moveSpeed: number): boolean {
+    if (this.payloadArmed) return false;
+    const distHome = this.mg.manhattanDist(
+      this.bomber.tile(),
+      this.homeBaseTile,
+    );
+    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+  }
+
   private doOutbound(moveSpeed: number, _damage: number): void {
+    // Bingo-fuel: abort outbound so the bomber actually makes it home
+    // alive instead of dying mid-flight when chasing far targets. The
+    // payload-armed check above keeps committed strikes committed.
+    if (this.shouldReturnHome(moveSpeed)) {
+      this.bomber.setTargetUnit(undefined);
+      this.commandedStrikeTile = null;
+      this.missionTargetTileSeen = null;
+      this.phase = "returning";
+      this.pathFinder = PathFinding.Air(this.mg);
+      return;
+    }
+
     // CLUSTER_STRIKE: pure tile bombing, no unit target required.
     if (this.commandedStrikeTile !== null) {
       const tile = this.commandedStrikeTile;

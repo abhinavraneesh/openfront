@@ -279,8 +279,33 @@ export class TacticalBomberExecution implements Execution {
     return best;
   }
 
+  /**
+   * Bingo-fuel check: returns true if continuing outbound would risk
+   * not having enough fuel to make it home. The bomber should abort and
+   * head back when this trips.
+   */
+  private shouldReturnHome(moveSpeed: number): boolean {
+    const distHome = this.mg.manhattanDist(
+      this.bomber.tile(),
+      this.homeBaseTile,
+    );
+    // Need fuel >= ticks to reach home + safety margin for pathfinding zigzags.
+    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+  }
+
   private doOutbound(moveSpeed: number, _damage: number): void {
     let target = this.bomber.targetUnit();
+
+    // Bingo-fuel: abort outbound so the bomber actually makes it home
+    // alive instead of dying mid-flight when chasing far targets.
+    if (this.shouldReturnHome(moveSpeed)) {
+      this.bomber.setTargetUnit(undefined);
+      this.commandedStrikeTile = null;
+      this.missionTargetTileSeen = null;
+      this.phase = "returning";
+      this.pathFinder = PathFinding.Air(this.mg);
+      return;
+    }
 
     // Player-commanded strike: fly toward the commanded tile and re-scan
     // for any target within 8 tiles each tick. This means an empty click
