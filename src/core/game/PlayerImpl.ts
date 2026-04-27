@@ -1291,14 +1291,32 @@ export class PlayerImpl implements Player {
     return this.mg.isLand(tile) ? tile : false;
   }
 
-  // Returns the tile of the nearest active Airbase owned by this player.
+  // Returns the tile of the nearest active Airbase or Carrier owned by this
+  // player, whichever is closest to targetTile. Carriers act as floating
+  // air bases for all fixed-wing aircraft.
   aircraftSpawn(targetTile: TileRef): TileRef | false {
-    const best = findClosestBy(
+    const bestAirbase = findClosestBy(
       this.units(UnitType.Airbase),
       (ab) => this.mg.euclideanDistSquared(ab.tile(), targetTile),
       (ab) => ab.isActive() && !ab.isUnderConstruction(),
     );
-    return best?.tile() ?? false;
+    const bestCarrier = findClosestBy(
+      this.units(UnitType.Carrier),
+      (c) => this.mg.euclideanDistSquared(c.tile(), targetTile),
+      (c) => c.isActive() && !c.isUnderConstruction(),
+    );
+    if (!bestAirbase && !bestCarrier) return false;
+    if (!bestAirbase) return bestCarrier!.tile();
+    if (!bestCarrier) return bestAirbase.tile();
+    const dAirbase = this.mg.euclideanDistSquared(
+      bestAirbase.tile(),
+      targetTile,
+    );
+    const dCarrier = this.mg.euclideanDistSquared(
+      bestCarrier.tile(),
+      targetTile,
+    );
+    return dAirbase <= dCarrier ? bestAirbase.tile() : bestCarrier.tile();
   }
 
   // Returns the tile of the nearest active City owned by this player.
