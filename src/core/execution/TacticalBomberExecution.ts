@@ -79,6 +79,9 @@ export class TacticalBomberExecution implements Execution {
         ...this.input,
         patrolTile: spawn,
       });
+      // Newly built bombers start stood down — player must issue a mission.
+      this.bomber.setMission(UnitMission.STAND_DOWN);
+      this.phase = "idle";
     }
     const info = mg.config().unitInfo(UnitType.TacticalBomber);
     this.maxFuel = info.maxFuel ?? 60;

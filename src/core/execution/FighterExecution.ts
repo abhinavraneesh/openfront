@@ -58,6 +58,8 @@ export class FighterExecution implements Execution {
         ...this.input,
         patrolTile: spawn,
       });
+      // Newly built fighters start stood down — pilot must activate manually.
+      this.fighter.setMission(UnitMission.STAND_DOWN);
     }
     const info = mg.config().unitInfo(UnitType.Fighter);
     this.maxFuel = info.maxFuel ?? 80;

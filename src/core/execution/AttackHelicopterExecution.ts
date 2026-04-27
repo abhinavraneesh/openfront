@@ -66,6 +66,8 @@ export class AttackHelicopterExecution implements Execution {
         ...this.input,
         patrolTile: spawn,
       });
+      // Newly built helicopters start stood down — player must issue a mission.
+      this.heli.setMission(UnitMission.STAND_DOWN);
     }
   }
 
