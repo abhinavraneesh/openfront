@@ -325,7 +325,9 @@ export class StrategicBomberExecution implements Execution {
       this.bomber.tile(),
       this.homeBaseTile,
     );
-    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+    // Pad for pathfinding detours (1.4x straight line) plus landing reserve.
+    const ticksHome = Math.ceil(distHome / moveSpeed);
+    return this.fuel <= Math.ceil(ticksHome * 1.4) + 12;
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
@@ -442,8 +444,10 @@ export class StrategicBomberExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    const carrier = this.findNearestCarrier();
-    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    // Always head for the closest active base. homeBaseTile is already the
+    // nearest of any airbase or carrier, so use it directly rather than
+    // unconditionally preferring a possibly-far carrier.
+    const returnTarget = this.homeBaseTile;
     this.moveToward(returnTarget, moveSpeed);
     if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;

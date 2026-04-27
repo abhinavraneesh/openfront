@@ -306,8 +306,10 @@ export class TacticalBomberExecution implements Execution {
       this.bomber.tile(),
       this.homeBaseTile,
     );
-    // Need fuel >= ticks to reach home + safety margin for pathfinding zigzags.
-    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+    // Need fuel for the trip home, padded for pathfinding detours (1.4x straight
+    // line) plus a flat safety reserve for landing approach + carrier movement.
+    const ticksHome = Math.ceil(distHome / moveSpeed);
+    return this.fuel <= Math.ceil(ticksHome * 1.4) + 12;
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
@@ -389,8 +391,11 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    const carrier = this.findNearestCarrier();
-    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    // Always head for the closest active base — homeBaseTile is already the
+    // nearest of any airbase or carrier, so use it directly. (Previously this
+    // preferred carriers even when an airbase was much closer, which caused
+    // bombers to crash chasing a far carrier when an airbase was right there.)
+    const returnTarget = this.homeBaseTile;
     this.moveToward(returnTarget, moveSpeed);
     if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
