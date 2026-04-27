@@ -301,9 +301,18 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
    */
   private computeAircraftRange(unit: UnitView): number | undefined {
     const info = this.game.config().unitInfo(unit.type());
-    const maxFuel = info.maxFuel;
-    if (maxFuel === undefined) return undefined; // no fuel = no range limit
+    const baseFuel = info.maxFuel;
+    if (baseFuel === undefined) return undefined; // no fuel = no range limit
     const moveSpeed = info.moveSpeed ?? 2;
+    // Mirror the airbase-count multiplier applied at plane init in the
+    // execution classes (see AircraftRange.ts). Carriers do not count.
+    const owner = unit.owner();
+    let airbaseCount = 0;
+    for (const u of owner.units(UnitType.Airbase)) {
+      if (u.isActive() && !u.isUnderConstruction()) airbaseCount++;
+    }
+    const mult = 1.0 + 0.2 * Math.min(Math.max(airbaseCount - 1, 0), 4);
+    const maxFuel = Math.round(baseFuel * mult);
     if (unit.type() === UnitType.Fighter) {
       // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
       // Max ticks outbound: (maxFuel - 8) / 3

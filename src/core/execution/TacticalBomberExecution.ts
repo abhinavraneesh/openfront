@@ -12,6 +12,7 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { airbaseRangeMultiplier } from "./AircraftRange";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
@@ -84,7 +85,9 @@ export class TacticalBomberExecution implements Execution {
       this.phase = "idle";
     }
     const info = mg.config().unitInfo(UnitType.TacticalBomber);
-    this.maxFuel = info.maxFuel ?? 60;
+    const baseFuel = info.maxFuel ?? 60;
+    const mult = airbaseRangeMultiplier(this.bomber.owner());
+    this.maxFuel = Math.round(baseFuel * mult);
     this.fuel = this.maxFuel;
   }
 
@@ -179,8 +182,19 @@ export class TacticalBomberExecution implements Execution {
         this.doReturn(moveSpeed);
         break;
       case "idle":
+        // Stick with carrier deck while idle (so we don't fall off when it moves)
+        if (
+          this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1 &&
+          this.bomber.tile() !== this.homeBaseTile
+        ) {
+          this.bomber.move(this.homeBaseTile);
+          this.bomber.setPatrolTile(this.homeBaseTile);
+        }
         this.idleTicks++;
-        if (this.idleTicks > 30) {
+        if (
+          this.idleTicks > 30 &&
+          this.bomber.mission() !== UnitMission.STAND_DOWN
+        ) {
           this.idleTicks = 0;
           this.phase = "finding";
         }
@@ -381,6 +395,10 @@ export class TacticalBomberExecution implements Execution {
     if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.bomber.modifyHealth(10);
+      // Re-anchor patrol reference to current home so the airbase panel can
+      // still track this bomber after a carrier moves.
+      this.bomber.setPatrolTile(returnTarget);
+      this.homeBaseTile = returnTarget;
       this.phase = "idle";
       this.idleTicks = 0;
     }
