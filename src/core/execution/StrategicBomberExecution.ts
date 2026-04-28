@@ -12,6 +12,8 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { airbaseRangeMultiplier } from "./AircraftRange";
+import { ClusterBombExecution } from "./ClusterBombExecution";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
@@ -27,35 +29,11 @@ const PRIMARY_TARGETS = [
   UnitType.CoastalBattery,
 ] as const;
 
-// All unit types that warheads can damage on impact tile
-const WARHEAD_DAMAGEABLE = [
-  UnitType.City,
-  UnitType.Port,
-  UnitType.Factory,
-  UnitType.MissileSilo,
-  UnitType.SAMLauncher,
-  UnitType.Airbase,
-  UnitType.NavalYard,
-  UnitType.CoastalBattery,
-  UnitType.FuelDepot,
-  UnitType.DefensePost,
-  UnitType.Warship,
-  UnitType.Destroyer,
-  UnitType.Cruiser,
-  UnitType.Battleship,
-  UnitType.Submarine,
-  UnitType.Minelayer,
-  UnitType.Carrier,
-  UnitType.TransportShip,
-] as const;
-
 // Within this tile distance the payload releases regardless of bomber health
 const POINT_OF_NO_RETURN = 2;
 // Cluster: 1 centre warhead + this many scatter warheads within SCATTER_RADIUS
 const SCATTER_COUNT = 4;
 const SCATTER_RADIUS = 3;
-// Per-warhead damage (total damage split across warheads)
-const WARHEAD_SEARCH_RADIUS = 1; // find units within 1 tile of each warhead landing tile
 
 export class StrategicBomberExecution implements Execution {
   private bomber: Unit;
@@ -111,7 +89,9 @@ export class StrategicBomberExecution implements Execution {
       this.phase = "idle";
     }
     const info = mg.config().unitInfo(UnitType.StrategicBomber);
-    this.maxFuel = info.maxFuel ?? 120;
+    const baseFuel = info.maxFuel ?? 200;
+    const mult = airbaseRangeMultiplier(this.bomber.owner());
+    this.maxFuel = Math.round(baseFuel * mult);
     this.fuel = this.maxFuel;
   }
 
@@ -201,8 +181,19 @@ export class StrategicBomberExecution implements Execution {
         this.doReturn(moveSpeed);
         break;
       case "idle":
+        // Stick with carrier deck while idle (don't fall off when it moves)
+        if (
+          this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1 &&
+          this.bomber.tile() !== this.homeBaseTile
+        ) {
+          this.bomber.move(this.homeBaseTile);
+          this.bomber.setPatrolTile(this.homeBaseTile);
+        }
         this.idleTicks++;
-        if (this.idleTicks > 50) {
+        if (
+          this.idleTicks > 50 &&
+          this.bomber.mission() !== UnitMission.STAND_DOWN
+        ) {
           this.idleTicks = 0;
           this.phase = "finding";
         }
@@ -319,7 +310,9 @@ export class StrategicBomberExecution implements Execution {
       this.bomber.tile(),
       this.homeBaseTile,
     );
-    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+    // Pad for pathfinding detours (1.4x straight line) plus landing reserve.
+    const ticksHome = Math.ceil(distHome / moveSpeed);
+    return this.fuel <= Math.ceil(ticksHome * 1.4) + 12;
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
@@ -385,19 +378,29 @@ export class StrategicBomberExecution implements Execution {
     this.payloadArmed = false;
     this.armedTargetTile = null;
     this.commandedStrikeTile = null;
+    this.missionTargetTileSeen = null;
+    // Clear the player-issued mission so the panel reflects "Idle" rather
+    // than holding "Cluster mission" forever, and so re-issuing CLUSTER_STRIKE
+    // on the same tile triggers a fresh strike instead of being deduped.
+    this.bomber.setMission(undefined);
+    this.bomber.setMissionTargetTile(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);
   }
 
   /**
    * Scatter cluster: 1 centre warhead + SCATTER_COUNT random warheads within
-   * SCATTER_RADIUS tiles. Each warhead damages all enemy units at its landing tile.
+   * SCATTER_RADIUS tiles. Each warhead is spawned as a `ClusterBombExecution`
+   * so it visually flies from the bomber to its landing tile and detonates
+   * (showing the FX-layer MiniExplosion) before applying damage.
+   *
    * No tile ownership change, no fallout.
    */
   private releaseCluster(centreTile: TileRef, totalDamage: number): void {
     const owner = this.bomber.owner();
     const warheadCount = 1 + SCATTER_COUNT;
     const damagePerWarhead = Math.round(totalDamage / warheadCount);
+    const spawnTile = this.bomber.tile();
 
     // Build list of landing tiles: centre first, then scatter
     const landingTiles: TileRef[] = [centreTile];
@@ -413,35 +416,26 @@ export class StrategicBomberExecution implements Execution {
       }
     }
 
-    // Damage all enemy units at each landing tile
     for (const tile of landingTiles) {
-      const nearby = this.mg.nearbyUnits(
-        tile,
-        WARHEAD_SEARCH_RADIUS,
-        WARHEAD_DAMAGEABLE,
+      this.mg.addExecution(
+        new ClusterBombExecution(spawnTile, owner, tile, damagePerWarhead),
       );
-      for (const { unit } of nearby) {
-        if (
-          unit.owner() !== owner &&
-          owner.canAttackPlayer(unit.owner(), true) &&
-          unit.isActive()
-        ) {
-          const multiplier = this.mg
-            .config()
-            .combatMultiplier(UnitType.StrategicBomber, unit.type());
-          unit.modifyHealth(-Math.round(damagePerWarhead * multiplier), owner);
-        }
-      }
     }
   }
 
   private doReturn(moveSpeed: number): void {
-    const carrier = this.findNearestCarrier();
-    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    // Always head for the closest active base. homeBaseTile is already the
+    // nearest of any airbase or carrier, so use it directly rather than
+    // unconditionally preferring a possibly-far carrier.
+    const returnTarget = this.homeBaseTile;
     this.moveToward(returnTarget, moveSpeed);
     if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.bomber.modifyHealth(10);
+      // Re-anchor patrol reference to current home so the airbase panel can
+      // still track this bomber after a carrier moves.
+      this.bomber.setPatrolTile(returnTarget);
+      this.homeBaseTile = returnTarget;
       this.phase = "idle";
       this.idleTicks = 0;
     }

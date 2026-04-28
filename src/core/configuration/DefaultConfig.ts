@@ -549,7 +549,7 @@ export class DefaultConfig implements Config {
           attackRate: 8,
           range: 50,
           moveSpeed: 4,
-          maxFuel: 80,
+          maxFuel: 120,
           constructionDuration: this.instantBuild() ? 0 : 100,
         };
         break;
@@ -560,7 +560,7 @@ export class DefaultConfig implements Config {
           damage: 600,
           range: 80,
           moveSpeed: 2,
-          maxFuel: 60,
+          maxFuel: 100,
           constructionDuration: this.instantBuild() ? 0 : 180,
         };
         break;
@@ -572,7 +572,7 @@ export class DefaultConfig implements Config {
           attackRate: 0,
           range: 120,
           moveSpeed: 1,
-          maxFuel: 120,
+          maxFuel: 200,
           constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;

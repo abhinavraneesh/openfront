@@ -318,7 +318,6 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const hostLevel =
       host && host.type() === UnitType.Airbase ? host.level() : 1;
     const maxFuel = baseMaxFuel * hostLevel;
-    const moveSpeed = info.moveSpeed ?? 2;
     if (unit.type() === UnitType.Fighter) {
       // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
       // Max ticks outbound: (maxFuel - 8) / 3

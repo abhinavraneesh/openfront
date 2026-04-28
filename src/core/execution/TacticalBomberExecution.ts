@@ -12,6 +12,7 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { airbaseRangeMultiplier } from "./AircraftRange";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
@@ -88,7 +89,9 @@ export class TacticalBomberExecution implements Execution {
       this.phase = "idle";
     }
     const info = mg.config().unitInfo(UnitType.TacticalBomber);
-    this.maxFuel = info.maxFuel ?? 60;
+    const baseFuel = info.maxFuel ?? 60;
+    const mult = airbaseRangeMultiplier(this.bomber.owner());
+    this.maxFuel = Math.round(baseFuel * mult);
     this.fuel = this.maxFuel;
   }
 
@@ -183,8 +186,19 @@ export class TacticalBomberExecution implements Execution {
         this.doReturn(moveSpeed);
         break;
       case "idle":
+        // Stick with carrier deck while idle (so we don't fall off when it moves)
+        if (
+          this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1 &&
+          this.bomber.tile() !== this.homeBaseTile
+        ) {
+          this.bomber.move(this.homeBaseTile);
+          this.bomber.setPatrolTile(this.homeBaseTile);
+        }
         this.idleTicks++;
-        if (this.idleTicks > 30) {
+        if (
+          this.idleTicks > 30 &&
+          this.bomber.mission() !== UnitMission.STAND_DOWN
+        ) {
           this.idleTicks = 0;
           this.phase = "finding";
         }
@@ -300,8 +314,10 @@ export class TacticalBomberExecution implements Execution {
       this.bomber.tile(),
       this.homeBaseTile,
     );
-    // Need fuel >= ticks to reach home + safety margin for pathfinding zigzags.
-    return this.fuel <= Math.ceil(distHome / moveSpeed) + 5;
+    // Need fuel for the trip home, padded for pathfinding detours (1.4x straight
+    // line) plus a flat safety reserve for landing approach + carrier movement.
+    const ticksHome = Math.ceil(distHome / moveSpeed);
+    return this.fuel <= Math.ceil(ticksHome * 1.4) + 12;
   }
 
   private doOutbound(moveSpeed: number, _damage: number): void {
@@ -383,12 +399,19 @@ export class TacticalBomberExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    const carrier = this.findNearestCarrier();
-    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    // Always head for the closest active base — homeBaseTile is already the
+    // nearest of any airbase or carrier, so use it directly. (Previously this
+    // preferred carriers even when an airbase was much closer, which caused
+    // bombers to crash chasing a far carrier when an airbase was right there.)
+    const returnTarget = this.homeBaseTile;
     this.moveToward(returnTarget, moveSpeed);
     if (this.mg.manhattanDist(this.bomber.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.bomber.modifyHealth(10);
+      // Re-anchor patrol reference to current home so the airbase panel can
+      // still track this bomber after a carrier moves.
+      this.bomber.setPatrolTile(returnTarget);
+      this.homeBaseTile = returnTarget;
       this.phase = "idle";
       this.idleTicks = 0;
     }

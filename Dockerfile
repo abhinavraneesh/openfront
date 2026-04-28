@@ -7,8 +7,7 @@ FROM base AS build
 ENV HUSKY=0
 # Copy package files first for better caching
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+RUN npm ci
 
 # Copy only what's needed for build
 COPY tsconfig.json ./
@@ -28,8 +27,7 @@ FROM base AS prod-deps
 ENV HUSKY=0
 ENV NPM_CONFIG_IGNORE_SCRIPTS=1
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+RUN npm ci --omit=dev
 
 # Final production image
 FROM base
@@ -76,6 +74,9 @@ ENV GIT_COMMIT="$GIT_COMMIT"
 
 RUN <<'EOF' tee /usr/local/bin/start.sh
 #!/bin/sh
+# Railway (and other PaaS) injects $PORT; default to 80 for self-hosted setups.
+LISTEN_PORT=${PORT:-80}
+sed -i "s/listen 80 default_server/listen ${LISTEN_PORT} default_server/" /etc/nginx/conf.d/default.conf
 if [ "$DOMAIN" = openfront.dev ] && [ "$SUBDOMAIN" != main ]; then
     exec timeout 25h /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
 else

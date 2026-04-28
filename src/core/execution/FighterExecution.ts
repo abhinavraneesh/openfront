@@ -12,6 +12,7 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { airbaseRangeMultiplier } from "./AircraftRange";
 
 type Phase = "patrol" | "intercept" | "returning";
 
@@ -66,7 +67,9 @@ export class FighterExecution implements Execution {
       this.fighter.setMission(UnitMission.STAND_DOWN);
     }
     const info = mg.config().unitInfo(UnitType.Fighter);
-    this.maxFuel = info.maxFuel ?? 80;
+    const baseFuel = info.maxFuel ?? 80;
+    const mult = airbaseRangeMultiplier(this.fighter.owner());
+    this.maxFuel = Math.round(baseFuel * mult);
     this.fuel = this.maxFuel;
   }
 
@@ -95,6 +98,11 @@ export class FighterExecution implements Execution {
         this.mg.manhattanDist(this.fighter.tile(), this.homeBaseTile) <= 1;
       if (docked) {
         this.fuel = this.maxFuel * this.homeBaseLevel;
+        // Stick with the carrier deck if home is a moving carrier.
+        if (this.fighter.tile() !== this.homeBaseTile) {
+          this.fighter.move(this.homeBaseTile);
+        }
+        this.fighter.setPatrolTile(this.homeBaseTile);
         return;
       }
       if (this.phase === "intercept" || this.phase === "patrol") {
@@ -216,8 +224,10 @@ export class FighterExecution implements Execution {
   }
 
   private shouldReturnHome(moveSpeed: number): boolean {
-    // Return when fuel barely covers the trip home (with margin)
-    return this.fuel < Math.ceil(this.distToHome() / moveSpeed) * 2 + 8;
+    // Return when fuel barely covers the trip home (with generous margin for
+    // pathfinding detours and the chance of carrier movement during return).
+    const ticksHome = Math.ceil(this.distToHome() / moveSpeed);
+    return this.fuel < Math.ceil(ticksHome * 1.6) + 12;
   }
 
   private doPatrol(
@@ -340,12 +350,20 @@ export class FighterExecution implements Execution {
   }
 
   private doReturn(moveSpeed: number): void {
-    const carrier = this.findNearestCarrier();
-    const returnTarget = carrier?.tile() ?? this.homeBaseTile;
+    // Always head for the closest active base. homeBaseTile is already the
+    // nearest of any airbase or carrier, so use it directly rather than
+    // unconditionally preferring a possibly-far carrier.
+    const returnTarget = this.homeBaseTile;
     this.moveToward(returnTarget, moveSpeed);
     if (this.mg.manhattanDist(this.fighter.tile(), returnTarget) <= 1) {
       this.fuel = this.maxFuel;
       this.fighter.modifyHealth(10);
+      // Re-anchor patrol/home reference to wherever we just docked. This lets
+      // the airbase panel keep tracking planes after a carrier moves: the
+      // plane's patrolTile follows its current home rather than its original
+      // spawn point.
+      this.fighter.setPatrolTile(returnTarget);
+      this.homeBaseTile = returnTarget;
       this.transitionTo("patrol");
     }
   }
