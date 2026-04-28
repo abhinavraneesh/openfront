@@ -721,7 +721,6 @@ export class InputHandler {
       { key: "buildSamLauncher", type: UnitType.SAMLauncher },
       { key: "buildAtomBomb", type: UnitType.AtomBomb },
       { key: "buildHydrogenBomb", type: UnitType.HydrogenBomb },
-      { key: "buildWarship", type: UnitType.Warship },
       { key: "buildMIRV", type: UnitType.MIRV },
       { key: "buildNavalYard", type: UnitType.NavalYard },
       { key: "buildAirbase", type: UnitType.Airbase },

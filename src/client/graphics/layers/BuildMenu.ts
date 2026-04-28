@@ -26,7 +26,6 @@ import { renderNumber } from "../../Utils";
 import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
 import { Layer } from "./Layer";
-const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
@@ -39,7 +38,7 @@ const samlauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const shieldIcon = assetUrl("images/ShieldIconWhite.svg");
 const destroyerIcon = assetUrl("images/DestroyerIconWhite.svg");
 const cruiserIcon = assetUrl("images/CruiserIconWhite.svg");
-const battleshipIcon = warshipIcon;
+const battleshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const submarineIcon = assetUrl("images/SubmarineIconWhite.svg");
 const minelayerIcon = assetUrl("images/MinelayerIconWhite.svg");
 const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
@@ -134,13 +133,6 @@ export const buildTable: BuildItemDisplay[][] = [
     },
   ],
   [
-    {
-      unitType: UnitType.Warship,
-      icon: warshipIcon,
-      description: "build_menu.desc.warship",
-      key: "unit_type.warship",
-      countable: true,
-    },
     {
       unitType: UnitType.Destroyer,
       icon: destroyerIcon,

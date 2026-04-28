@@ -18,7 +18,6 @@ import {
 import { renderNumber, translateText } from "../../Utils";
 import { UIState } from "../UIState";
 import { Layer } from "./Layer";
-const warshipIcon = assetUrl("images/BattleshipIconWhite.svg");
 const cityIcon = assetUrl("images/CityIconWhite.svg");
 const factoryIcon = assetUrl("images/FactoryIconWhite.svg");
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
@@ -42,7 +41,6 @@ export class UnitDisplay extends LitElement implements Layer {
   private playerBuildables: BuildableUnit[] | null = null;
   private keybinds: Record<string, { value: string; key: string }> = {};
   private _cities = 0;
-  private _warships = 0;
   private _factories = 0;
   private _missileSilo = 0;
   private _port = 0;
@@ -89,7 +87,6 @@ export class UnitDisplay extends LitElement implements Layer {
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.MissileSilo).length ?? 0) > 0
         );
-      case UnitType.Warship:
       case UnitType.Destroyer:
       case UnitType.Minelayer:
         return (
@@ -140,7 +137,6 @@ export class UnitDisplay extends LitElement implements Layer {
     this._defensePost = player.totalUnitLevels(UnitType.DefensePost);
     this._samLauncher = player.totalUnitLevels(UnitType.SAMLauncher);
     this._factories = player.totalUnitLevels(UnitType.Factory);
-    this._warships = player.totalUnitLevels(UnitType.Warship);
     this._navalYard = player.totalUnitLevels(UnitType.NavalYard);
     this._airbase = player.totalUnitLevels(UnitType.Airbase);
     this._fuelDepot = player.totalUnitLevels(UnitType.FuelDepot);
@@ -208,13 +204,6 @@ export class UnitDisplay extends LitElement implements Layer {
             UnitType.SAMLauncher,
             "sam_launcher",
             this.keybinds["buildSamLauncher"]?.key ?? "6",
-          )}
-          ${this.renderUnitItem(
-            warshipIcon,
-            this._warships,
-            UnitType.Warship,
-            "warship",
-            this.keybinds["buildWarship"]?.key ?? "7",
           )}
           ${this.renderUnitItem(
             navalYardIcon,
@@ -348,7 +337,6 @@ export class UnitDisplay extends LitElement implements Layer {
                   ]),
                 );
                 break;
-              case UnitType.Warship:
               case UnitType.Destroyer:
               case UnitType.Minelayer:
                 this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
