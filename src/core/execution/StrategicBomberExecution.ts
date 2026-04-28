@@ -13,6 +13,7 @@ import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { airbaseRangeMultiplier } from "./AircraftRange";
+import { ClusterBombExecution } from "./ClusterBombExecution";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
 
@@ -28,35 +29,11 @@ const PRIMARY_TARGETS = [
   UnitType.CoastalBattery,
 ] as const;
 
-// All unit types that warheads can damage on impact tile
-const WARHEAD_DAMAGEABLE = [
-  UnitType.City,
-  UnitType.Port,
-  UnitType.Factory,
-  UnitType.MissileSilo,
-  UnitType.SAMLauncher,
-  UnitType.Airbase,
-  UnitType.NavalYard,
-  UnitType.CoastalBattery,
-  UnitType.FuelDepot,
-  UnitType.DefensePost,
-  UnitType.Warship,
-  UnitType.Destroyer,
-  UnitType.Cruiser,
-  UnitType.Battleship,
-  UnitType.Submarine,
-  UnitType.Minelayer,
-  UnitType.Carrier,
-  UnitType.TransportShip,
-] as const;
-
 // Within this tile distance the payload releases regardless of bomber health
 const POINT_OF_NO_RETURN = 2;
 // Cluster: 1 centre warhead + this many scatter warheads within SCATTER_RADIUS
 const SCATTER_COUNT = 4;
 const SCATTER_RADIUS = 3;
-// Per-warhead damage (total damage split across warheads)
-const WARHEAD_SEARCH_RADIUS = 1; // find units within 1 tile of each warhead landing tile
 
 export class StrategicBomberExecution implements Execution {
   private bomber: Unit;
@@ -393,19 +370,29 @@ export class StrategicBomberExecution implements Execution {
     this.payloadArmed = false;
     this.armedTargetTile = null;
     this.commandedStrikeTile = null;
+    this.missionTargetTileSeen = null;
+    // Clear the player-issued mission so the panel reflects "Idle" rather
+    // than holding "Cluster mission" forever, and so re-issuing CLUSTER_STRIKE
+    // on the same tile triggers a fresh strike instead of being deduped.
+    this.bomber.setMission(undefined);
+    this.bomber.setMissionTargetTile(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);
   }
 
   /**
    * Scatter cluster: 1 centre warhead + SCATTER_COUNT random warheads within
-   * SCATTER_RADIUS tiles. Each warhead damages all enemy units at its landing tile.
+   * SCATTER_RADIUS tiles. Each warhead is spawned as a `ClusterBombExecution`
+   * so it visually flies from the bomber to its landing tile and detonates
+   * (showing the FX-layer MiniExplosion) before applying damage.
+   *
    * No tile ownership change, no fallout.
    */
   private releaseCluster(centreTile: TileRef, totalDamage: number): void {
     const owner = this.bomber.owner();
     const warheadCount = 1 + SCATTER_COUNT;
     const damagePerWarhead = Math.round(totalDamage / warheadCount);
+    const spawnTile = this.bomber.tile();
 
     // Build list of landing tiles: centre first, then scatter
     const landingTiles: TileRef[] = [centreTile];
@@ -421,25 +408,10 @@ export class StrategicBomberExecution implements Execution {
       }
     }
 
-    // Damage all enemy units at each landing tile
     for (const tile of landingTiles) {
-      const nearby = this.mg.nearbyUnits(
-        tile,
-        WARHEAD_SEARCH_RADIUS,
-        WARHEAD_DAMAGEABLE,
+      this.mg.addExecution(
+        new ClusterBombExecution(spawnTile, owner, tile, damagePerWarhead),
       );
-      for (const { unit } of nearby) {
-        if (
-          unit.owner() !== owner &&
-          owner.canAttackPlayer(unit.owner(), true) &&
-          unit.isActive()
-        ) {
-          const multiplier = this.mg
-            .config()
-            .combatMultiplier(UnitType.StrategicBomber, unit.type());
-          unit.modifyHealth(-Math.round(damagePerWarhead * multiplier), owner);
-        }
-      }
     }
   }
 
