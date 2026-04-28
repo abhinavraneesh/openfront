@@ -7,6 +7,7 @@ import { GameView, UnitView } from "../../../core/game/GameView";
 import { CloseViewEvent, MouseUpEvent } from "../../InputHandler";
 import {
   BuildUnitIntentEvent,
+  SendUpgradeStructureIntentEvent,
   SetUnitMissionIntentEvent,
   ShowAirbasePanelEvent,
   StartTargetingModeEvent,
@@ -343,6 +344,14 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     this._nationPickMission = null;
   }
 
+  private upgradeAirbase() {
+    const host = this.host();
+    if (!host || host.type() !== UnitType.Airbase) return;
+    this.eventBus.emit(
+      new SendUpgradeStructureIntentEvent(host.id(), UnitType.Airbase),
+    );
+  }
+
   private recallAll() {
     const host = this.host();
     if (!host) return;
@@ -524,6 +533,22 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const buildInfo = this.game.config().unitInfo(this._selectedBuildType);
     const buildSeconds = Math.round((buildInfo.constructionDuration ?? 0) / 10);
 
+    const isAirbase = host.type() === UnitType.Airbase;
+    const airbaseLevel = isAirbase ? host.level() : 0;
+    const me = this.game.myPlayer();
+    // Approximate next upgrade cost using the same formula as DefaultConfig:
+    // 500k * 2^(total airbase levels built), capped at 16M.
+    // totalUnitLevels() sums levels of all owned airbases, which tracks
+    // unitsConstructed closely enough for cost display purposes.
+    const totalAirbases = isAirbase
+      ? (me?.totalUnitLevels(UnitType.Airbase) ?? 0)
+      : 0;
+    const upgradeCostNum = isAirbase
+      ? Math.min(16_000_000, 500_000 * Math.pow(2, totalAirbases))
+      : 0;
+    const upgradeCost = BigInt(Math.floor(upgradeCostNum));
+    const canAffordUpgrade = me ? me.gold() >= upgradeCost : false;
+
     return html`
       <div class="panel">
         <div class="header">
@@ -534,6 +559,27 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
           <div class="hp-fill" style="width: ${hpPct}%"></div>
         </div>
         <div class="meta">HP ${Math.round(hp)} / ${maxHp}</div>
+
+        ${isAirbase
+          ? html`
+              <hr class="divider" />
+              <div class="section-label">
+                Airbase level ${airbaseLevel} — Stack to increase range
+              </div>
+              <div class="build-row">
+                <span class="meta"
+                  >Cost: ${(Number(upgradeCost) / 1000).toFixed(0)}k gold</span
+                >
+                <button
+                  class="primary"
+                  ?disabled=${!canAffordUpgrade}
+                  @click=${() => this.upgradeAirbase()}
+                >
+                  Stack (Lv ${airbaseLevel + 1})
+                </button>
+              </div>
+            `
+          : ""}
 
         <hr class="divider" />
         <div class="section-label">Build queue</div>
