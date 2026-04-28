@@ -113,7 +113,10 @@ export class UnitLayer implements Layer {
     this.eventBus.on(UnitSelectionEvent, (e) => this.onUnitSelectionChange(e));
     this.redraw();
 
-    loadAllSprites();
+    // Sprites load async — once they're ready, redraw so any units that
+    // ticked during the loading window (and were skipped by drawUnitsCells)
+    // get painted instead of staying invisible on the canvas.
+    loadAllSprites().then(() => this.redraw());
   }
 
   /**
@@ -324,7 +327,12 @@ export class UnitLayer implements Layer {
   }
 
   private drawUnitsCells(unitViews: UnitView[]) {
-    unitViews.forEach((unitView) => this.onUnitEvent(unitView));
+    // getColoredSprite throws when a sprite hasn't finished async-loading yet,
+    // which kills the rest of the batch and leaves later units invisible.
+    // Skip not-ready units here; init() schedules a redraw once load completes.
+    unitViews
+      .filter((unitView) => !unitView.isActive() || isSpriteReady(unitView))
+      .forEach((unitView) => this.onUnitEvent(unitView));
   }
 
   private relationship(unit: UnitView): Relationship {

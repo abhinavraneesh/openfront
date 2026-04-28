@@ -31,6 +31,10 @@ export class FighterExecution implements Execution {
   private fuel = 80;
   private maxFuel = 80;
   private homeBaseTile: TileRef;
+  // Level of the airbase this fighter currently treats as home. Carriers and
+  // freshly-built airbases are level 1; upgraded airbases scale this up, which
+  // multiplies the fighter's effective fuel tank (and therefore range).
+  private homeBaseLevel = 1;
   private lastAttack = 0;
 
   constructor(
@@ -90,7 +94,7 @@ export class FighterExecution implements Execution {
       const docked =
         this.mg.manhattanDist(this.fighter.tile(), this.homeBaseTile) <= 1;
       if (docked) {
-        this.fuel = this.maxFuel;
+        this.fuel = this.maxFuel * this.homeBaseLevel;
         return;
       }
       if (this.phase === "intercept" || this.phase === "patrol") {
@@ -147,6 +151,7 @@ export class FighterExecution implements Execution {
     const owner = this.fighter.owner();
     const here = this.fighter.tile();
     let best: TileRef | undefined;
+    let bestLevel = 1;
     let bestDist = Infinity;
 
     for (const u of owner.units(UnitType.Airbase)) {
@@ -154,6 +159,7 @@ export class FighterExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = u.level();
         bestDist = d;
       }
     }
@@ -162,12 +168,14 @@ export class FighterExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = 1;
         bestDist = d;
       }
     }
 
     if (best === undefined) return false;
     this.homeBaseTile = best;
+    this.homeBaseLevel = bestLevel;
     return true;
   }
 
@@ -197,7 +205,7 @@ export class FighterExecution implements Execution {
         unit.isActive() &&
         !unit.isUnderConstruction()
       ) {
-        this.fuel = Math.min(this.fuel + 20, this.maxFuel);
+        this.fuel = Math.min(this.fuel + 20, this.maxFuel * this.homeBaseLevel);
         break;
       }
     }

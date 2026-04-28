@@ -522,9 +522,23 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.Airbase:
         info = {
-          cost: this.costWrapper(() => 500_000, UnitType.Airbase),
+          // Airbases stack: each new Airbase build OR upgrade on an existing
+          // one charges progressively more, since unitsConstructed increments
+          // on both. 500k → 1M → 2M → 4M ... capped at 16M.
+          cost: (game: Game, player: Player) => {
+            if (
+              player.type() === PlayerType.Human &&
+              this.hasInfiniteGoldFor(player)
+            ) {
+              return 0n;
+            }
+            const stacks = player.unitsConstructed(UnitType.Airbase);
+            const cost = Math.min(16_000_000, 500_000 * Math.pow(2, stacks));
+            return BigInt(Math.floor(cost));
+          },
           maxHealth: 1500,
           constructionDuration: this.instantBuild() ? 0 : 300,
+          upgradable: true,
         };
         break;
       case UnitType.Fighter:

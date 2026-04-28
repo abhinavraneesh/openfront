@@ -66,6 +66,10 @@ export class StrategicBomberExecution implements Execution {
   private fuel = 120;
   private maxFuel = 120;
   private homeBaseTile: TileRef;
+  // Level of the airbase this bomber currently treats as home. Carriers and
+  // freshly-built airbases are level 1; upgraded airbases multiply the
+  // effective fuel tank — and therefore strike radius.
+  private homeBaseLevel = 1;
   private idleTicks = 0;
   // Set when bomber enters point-of-no-return; payload fires even if shot down
   private payloadArmed = false;
@@ -138,7 +142,7 @@ export class StrategicBomberExecution implements Execution {
       const docked =
         this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1;
       if (docked) {
-        this.fuel = this.maxFuel;
+        this.fuel = this.maxFuel * this.homeBaseLevel;
         this.phase = "idle";
         this.idleTicks = 0;
         return;
@@ -214,6 +218,7 @@ export class StrategicBomberExecution implements Execution {
     const owner = this.bomber.owner();
     const here = this.bomber.tile();
     let best: TileRef | undefined;
+    let bestLevel = 1;
     let bestDist = Infinity;
 
     for (const u of owner.units(UnitType.Airbase)) {
@@ -221,6 +226,7 @@ export class StrategicBomberExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = u.level();
         bestDist = d;
       }
     }
@@ -229,12 +235,14 @@ export class StrategicBomberExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = 1;
         bestDist = d;
       }
     }
 
     if (best === undefined) return false;
     this.homeBaseTile = best;
+    this.homeBaseLevel = bestLevel;
     return true;
   }
 
@@ -264,7 +272,7 @@ export class StrategicBomberExecution implements Execution {
         unit.isActive() &&
         !unit.isUnderConstruction()
       ) {
-        this.fuel = Math.min(this.fuel + 20, this.maxFuel);
+        this.fuel = Math.min(this.fuel + 20, this.maxFuel * this.homeBaseLevel);
         break;
       }
     }

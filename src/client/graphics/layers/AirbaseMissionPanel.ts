@@ -216,8 +216,15 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     return me.units(...AIRCRAFT_TYPES).filter((u) => {
       if (!u.isActive()) return false;
       const home = u.patrolTile();
-      if (home === undefined) return false;
-      return this.game.manhattanDist(home, hostTile) <= STATIONED_RADIUS;
+      // patrolTile is set at spawn and goes stale for carrier-based aircraft as
+      // the carrier moves — also check current tile so docked planes are found.
+      if (
+        home !== undefined &&
+        this.game.manhattanDist(home, hostTile) <= STATIONED_RADIUS
+      ) {
+        return true;
+      }
+      return this.game.manhattanDist(u.tile(), hostTile) <= STATIONED_RADIUS;
     });
   }
 
@@ -298,11 +305,19 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
    * Compute the maximum one-way range (in tiles) for a plane based on its
    * fuel and move speed. Returns undefined for units without fuel (helicopters).
    * Matches the bingo-fuel formula used in the execution classes.
+   *
+   * Effective fuel scales with the host airbase level — upgraded airbases
+   * give planes a bigger tank and therefore a bigger strike radius. Carriers
+   * are always level 1.
    */
   private computeAircraftRange(unit: UnitView): number | undefined {
     const info = this.game.config().unitInfo(unit.type());
-    const maxFuel = info.maxFuel;
-    if (maxFuel === undefined) return undefined; // no fuel = no range limit
+    const baseMaxFuel = info.maxFuel;
+    if (baseMaxFuel === undefined) return undefined; // no fuel = no range limit
+    const host = this.host();
+    const hostLevel =
+      host && host.type() === UnitType.Airbase ? host.level() : 1;
+    const maxFuel = baseMaxFuel * hostLevel;
     const moveSpeed = info.moveSpeed ?? 2;
     if (unit.type() === UnitType.Fighter) {
       // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
