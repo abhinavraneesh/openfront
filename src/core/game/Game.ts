@@ -283,6 +283,7 @@ export interface PublicGameModifiers {
 export interface UnitInfo {
   cost: (game: Game, player: Player) => Gold;
   maxHealth?: number;
+  armor?: number; // damage taken multiplier (1.0 = no reduction, 0.45 = 55% reduction)
   damage?: number;
   attackRate?: number; // ticks between attacks
   range?: number; // targeting range in tiles
@@ -356,11 +357,15 @@ export enum UnitMission {
   ATTACK_TILE = "attack_tile", // AttackHeli: attack specific tile
   // Ship missions
   AUTO = "auto", // Ships: default autonomous patrol (current behavior)
-  MOVE_TO_TILE = "move_to_tile", // Ships: pathfind to tile then hold
+  MOVE_TO_TILE = "move_to_tile", // Ships: pathfind to tile then HOLD_POSITION
+  HOLD_POSITION = "hold_position", // Ships: stationary, defend self only
   PATROL_AREA = "patrol_area", // Ships: 2-tile radius patrol around missionTargetTile
   BOMBARD_COAST = "bombard_coast", // Cruiser/BB: bombard missionTargetTile
   ESCORT_UNIT = "escort_unit", // Ships: follow missionTargetUnitId unit
   ATTACK_SHIP = "attack_ship", // Ships: engage missionTargetUnitId unit
+  HUNT_SUBMARINE = "hunt_submarine", // Destroyer: actively hunt subs, depth charge in range
+  SWEEP_MINES = "sweep_mines", // Minelayer: clear mines around missionTargetTile (10 ticks)
+  LAY_MINE = "lay_mine", // Minelayer: move to tile, drop mine
   RETURN_TO_PORT = "return_to_port", // Ships: dock at home port
 }
 

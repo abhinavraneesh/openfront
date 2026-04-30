@@ -9,6 +9,7 @@ import {
   SetUnitMissionIntentEvent,
   ShowFleetPanelEvent,
   StartTargetingModeEvent,
+  TargetingMode,
 } from "../../Transport";
 import { Layer } from "./Layer";
 import { GoToPositionEvent } from "./Leaderboard";
@@ -31,6 +32,7 @@ interface MissionOption {
   specialAttackShip?: boolean;
   specialEscort?: boolean;
   onlyFor?: UnitType[];
+  targetingMode?: TargetingMode;
 }
 
 const BASE_OPTIONS: MissionOption[] = [
@@ -40,12 +42,18 @@ const BASE_OPTIONS: MissionOption[] = [
     mission: UnitMission.MOVE_TO_TILE,
     needsTarget: true,
     targetingLabel: "Select move destination",
+    targetingMode: "move",
+  },
+  {
+    label: "Hold position",
+    mission: UnitMission.HOLD_POSITION,
   },
   {
     label: "Patrol area →",
     mission: UnitMission.PATROL_AREA,
     needsTarget: true,
     targetingLabel: "Select patrol center",
+    targetingMode: "move",
   },
   {
     label: "Escort unit →",
@@ -53,6 +61,7 @@ const BASE_OPTIONS: MissionOption[] = [
     needsTarget: true,
     targetingLabel: "Select friendly ship to escort",
     specialEscort: true,
+    targetingMode: "ship-escort",
   },
   { label: "Return to port", mission: UnitMission.RETURN_TO_PORT },
   {
@@ -61,6 +70,16 @@ const BASE_OPTIONS: MissionOption[] = [
     needsTarget: true,
     targetingLabel: "Select enemy ship (click near target)",
     specialAttackShip: true,
+    targetingMode: "ship-attack",
+  },
+  {
+    label: "Hunt submarine →",
+    mission: UnitMission.HUNT_SUBMARINE,
+    needsTarget: true,
+    targetingLabel: "Select enemy submarine to hunt",
+    specialAttackShip: true,
+    targetingMode: "ship-attack",
+    onlyFor: [UnitType.Destroyer],
   },
   {
     label: "Bombard coast →",
@@ -68,6 +87,23 @@ const BASE_OPTIONS: MissionOption[] = [
     needsTarget: true,
     targetingLabel: "Select coastal target",
     onlyFor: [UnitType.Cruiser, UnitType.Battleship],
+    targetingMode: "bombard",
+  },
+  {
+    label: "Lay mine →",
+    mission: UnitMission.LAY_MINE,
+    needsTarget: true,
+    targetingLabel: "Select tile to mine",
+    onlyFor: [UnitType.Minelayer],
+    targetingMode: "mine",
+  },
+  {
+    label: "Sweep mines →",
+    mission: UnitMission.SWEEP_MINES,
+    needsTarget: true,
+    targetingLabel: "Select area to sweep — costs 200g (10 ticks)",
+    onlyFor: [UnitType.Destroyer],
+    targetingMode: "move",
   },
 ];
 
@@ -83,6 +119,8 @@ function statusText(mission: UnitMission | undefined): string {
       return "Patrolling (home)";
     case UnitMission.MOVE_TO_TILE:
       return "Moving to position";
+    case UnitMission.HOLD_POSITION:
+      return "Holding position";
     case UnitMission.PATROL_AREA:
       return "Patrolling area";
     case UnitMission.BOMBARD_COAST:
@@ -91,6 +129,12 @@ function statusText(mission: UnitMission | undefined): string {
       return "Escorting";
     case UnitMission.ATTACK_SHIP:
       return "Hunting target";
+    case UnitMission.HUNT_SUBMARINE:
+      return "Hunting submarines";
+    case UnitMission.SWEEP_MINES:
+      return "Sweeping mines";
+    case UnitMission.LAY_MINE:
+      return "Laying mine";
     case UnitMission.RETURN_TO_PORT:
       return "Returning to port";
     default:
@@ -230,6 +274,14 @@ export class FleetPanel extends LitElement implements Layer {
     const me = game.myPlayer();
     const myId = me?.id();
 
+    const originTile = ship.tile();
+    let range: number | undefined;
+    if (opt.mission === UnitMission.BOMBARD_COAST) {
+      // Spec: BB bombard range 10 tiles, CA bombard range 6 tiles.
+      if (ship.type() === UnitType.Battleship) range = 10;
+      else if (ship.type() === UnitType.Cruiser) range = 6;
+    }
+
     this.eventBus.emit(
       new StartTargetingModeEvent(
         opt.targetingLabel ?? "Select target",
@@ -288,6 +340,9 @@ export class FleetPanel extends LitElement implements Layer {
             );
           }
         },
+        range,
+        originTile,
+        opt.targetingMode ?? "tile",
       ),
     );
   }

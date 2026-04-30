@@ -66,7 +66,9 @@ export class NavalShellExecution implements Execution {
   private effectOnTarget(): number {
     const roll = this.random.nextInt(1, 6);
     const damageMultiplier = (roll - 1) * 25 + 200;
-    return Math.round((this.baseDamage / 250) * damageMultiplier);
+    const rawDamage = Math.round((this.baseDamage / 250) * damageMultiplier);
+    const armor = this.mg.config().unitInfo(this.target.type()).armor ?? 1.0;
+    return Math.round(rawDamage * armor);
   }
 
   isActive(): boolean {

@@ -187,6 +187,16 @@ export class SetUnitMissionIntentEvent implements GameEvent {
   ) {}
 }
 
+// Visual mode hint for TargetingCursor — affects which feedback overlay
+// (movement line, ship reticle, etc.) is drawn while picking a tile.
+export type TargetingMode =
+  | "move" // line from origin to cursor
+  | "tile" // simple cursor + optional range ring
+  | "bombard" // range ring + cursor; line if origin known
+  | "ship-attack" // reticle on nearest enemy ship under cursor
+  | "ship-escort" // friendly reticle on nearest friendly ship under cursor
+  | "mine"; // small marker preview at cursor tile
+
 // Emitted to request tile-picking mode; callback fires with the selected tile.
 // Optional rangeTiles + originTile draw a range circle on the map and block
 // the callback when the click is out of range.
@@ -196,6 +206,7 @@ export class StartTargetingModeEvent implements GameEvent {
     public readonly onTileSelected: (tile: TileRef) => void,
     public readonly rangeTiles?: number,
     public readonly originTile?: TileRef,
+    public readonly mode: TargetingMode = "tile",
   ) {}
 }
 

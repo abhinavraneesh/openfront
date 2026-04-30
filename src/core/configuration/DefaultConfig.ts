@@ -475,49 +475,63 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.Destroyer:
         info = {
-          cost: this.costWrapper(() => 150_000, UnitType.Destroyer),
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
+            UnitType.Destroyer,
+          ),
           maxHealth: 900,
-          damage: 150,
+          armor: 0.85,
+          damage: 200,
           attackRate: 10,
           range: 100,
-          constructionDuration: this.instantBuild() ? 0 : 120,
+          constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;
       case UnitType.Cruiser:
         info = {
-          cost: this.costWrapper(() => 300_000, UnitType.Cruiser),
-          maxHealth: 3000,
-          damage: 300,
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 750_000),
+            UnitType.Cruiser,
+          ),
+          maxHealth: 2000,
+          armor: 0.7,
+          damage: 375,
           attackRate: 8,
           range: 110,
-          constructionDuration: this.instantBuild() ? 0 : 200,
+          constructionDuration: this.instantBuild() ? 0 : 500,
         };
         break;
       case UnitType.Battleship:
         info = {
-          cost: this.costWrapper(() => 600_000, UnitType.Battleship),
+          cost: this.costWrapper(() => 2_000_000, UnitType.Battleship),
           maxHealth: 5000,
-          damage: 350,
+          armor: 0.45,
+          damage: 1000,
           attackRate: 15,
           range: 150,
-          constructionDuration: this.instantBuild() ? 0 : 400,
+          constructionDuration: this.instantBuild() ? 0 : 1200,
         };
         break;
       case UnitType.Submarine:
         info = {
-          cost: this.costWrapper(() => 250_000, UnitType.Submarine),
-          maxHealth: 600,
-          damage: 500,
-          attackRate: 35,
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(2_000_000, (numUnits + 1) * 500_000),
+            UnitType.Submarine,
+          ),
+          maxHealth: 1400,
+          armor: 0.75,
+          damage: 750,
+          attackRate: 8,
           range: 90,
-          constructionDuration: this.instantBuild() ? 0 : 250,
+          constructionDuration: this.instantBuild() ? 0 : 600,
         };
         break;
       case UnitType.Minelayer:
         info = {
-          cost: this.costWrapper(() => 80_000, UnitType.Minelayer),
-          maxHealth: 300,
-          constructionDuration: this.instantBuild() ? 0 : 80,
+          cost: this.costWrapper(() => 150_000, UnitType.Minelayer),
+          maxHealth: 500,
+          armor: 1.0,
+          constructionDuration: this.instantBuild() ? 0 : 200,
         };
         break;
       case UnitType.Airbase:
@@ -589,9 +603,9 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.NavalYard:
         info = {
-          cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
+          cost: this.costWrapper(() => 1_000_000, UnitType.NavalYard),
           maxHealth: 1200,
-          constructionDuration: this.instantBuild() ? 0 : 400,
+          constructionDuration: this.instantBuild() ? 0 : 800,
         };
         break;
       case UnitType.FuelDepot:
@@ -613,10 +627,11 @@ export class DefaultConfig implements Config {
         break;
       case UnitType.Carrier:
         info = {
-          cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
-          maxHealth: 3000,
+          cost: this.costWrapper(() => 5_000_000, UnitType.Carrier),
+          maxHealth: 6000,
+          armor: 0.55,
           moveSpeed: 1,
-          constructionDuration: this.instantBuild() ? 0 : 600,
+          constructionDuration: this.instantBuild() ? 0 : 2400,
         };
         break;
       case UnitType.Mine:
@@ -624,7 +639,7 @@ export class DefaultConfig implements Config {
         info = {
           cost: this.costWrapper(() => 0, UnitType.Mine),
           maxHealth: 1,
-          damage: 150,
+          damage: 150, // flat damage ignoring armor per spec
         };
         break;
       default:
@@ -1258,6 +1273,7 @@ export class DefaultConfig implements Config {
       if (defender === UnitType.Minelayer) return 2.5;
       if (defender === UnitType.Cruiser || defender === UnitType.Battleship)
         return 0.4;
+      if (defender === UnitType.Carrier) return 0.6;
       return 1.0;
     }
 
@@ -1266,6 +1282,7 @@ export class DefaultConfig implements Config {
       if (airUnits.has(defender)) return 2.0;
       if (defender === UnitType.Destroyer) return 1.8;
       if (defender === UnitType.Submarine) return 0.5;
+      if (defender === UnitType.Carrier) return 1.2;
       return 1.0;
     }
 
@@ -1285,6 +1302,11 @@ export class DefaultConfig implements Config {
       if (defender === UnitType.Cruiser) return 2.0;
       if (defender === UnitType.Destroyer) return 0.5;
       return 1.0;
+    }
+
+    // --- Minelayer and Carrier: cannot attack ---
+    if (attacker === UnitType.Minelayer || attacker === UnitType.Carrier) {
+      return 0.0;
     }
 
     // --- Coastal Battery: ships only ---

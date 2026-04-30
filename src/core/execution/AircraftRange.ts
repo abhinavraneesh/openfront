@@ -1,4 +1,4 @@
-import { Player, UnitType } from "../game/Game";
+import { Player, Unit, UnitType } from "../game/Game";
 
 /**
  * Range multiplier scaling with the number of active friendly airbases.
@@ -13,6 +13,29 @@ import { Player, UnitType } from "../game/Game";
  *   4 airbases → 1.60x
  *   5+         → 1.80x
  */
+export const CARRIER_CAPACITY = 6;
+
+/**
+ * Count aircraft currently on a carrier's deck (same tile, any mission).
+ * Used to enforce CARRIER_CAPACITY before assigning a carrier as home base.
+ */
+export function carrierDockedCount(carrier: Unit): number {
+  const owner = carrier.owner();
+  const tile = carrier.tile();
+  let count = 0;
+  for (const type of [
+    UnitType.Fighter,
+    UnitType.TacticalBomber,
+    UnitType.StrategicBomber,
+    UnitType.AttackHelicopter,
+  ] as const) {
+    for (const u of owner.units(type)) {
+      if (u.isActive() && u.tile() === tile) count++;
+    }
+  }
+  return count;
+}
+
 export function airbaseRangeMultiplier(owner: Player): number {
   let count = 0;
   for (const u of owner.units(UnitType.Airbase)) {
