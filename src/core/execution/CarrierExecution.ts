@@ -50,6 +50,7 @@ export class CarrierExecution implements Execution {
   tick(_ticks: number): void {
     if (!this.carrier?.isActive()) return;
     if (this.carrier.health() <= 0) {
+      this.notifyCarrierSunk();
       this.carrier.delete();
       return;
     }
@@ -138,6 +139,32 @@ export class CarrierExecution implements Execution {
     }
     if (!allowShoreline) return this.randomTile(true);
     return undefined;
+  }
+
+  private notifyCarrierSunk(): void {
+    if (typeof window === "undefined") return;
+    const owner = this.carrier.owner();
+    const otherCarriers = owner
+      .units(UnitType.Carrier)
+      .filter((u) => u !== this.carrier && u.isActive()).length;
+    const airbases = owner
+      .units(UnitType.Airbase)
+      .filter((u) => u.isActive()).length;
+    if (otherCarriers + airbases > 0) return;
+    const aircraft =
+      owner.units(UnitType.Fighter).filter((u) => u.isActive()).length +
+      owner.units(UnitType.TacticalBomber).filter((u) => u.isActive()).length +
+      owner.units(UnitType.StrategicBomber).filter((u) => u.isActive()).length +
+      owner.units(UnitType.AttackHelicopter).filter((u) => u.isActive()).length;
+    window.dispatchEvent(
+      new CustomEvent("show-message", {
+        detail: {
+          message: `Carrier sunk — ${aircraft} aircraft lost`,
+          duration: 5000,
+          color: "red",
+        },
+      }),
+    );
   }
 
   isActive(): boolean {

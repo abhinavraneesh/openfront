@@ -140,8 +140,6 @@ export class ShipMissionRunner {
       return "auto";
     }
 
-    // Auto-engage: if an enemy ship enters the patrol radius, switch to
-    // ATTACK_SHIP. Keep missionTargetTile so we can restore patrol later.
     const PATROL_RADIUS = 2;
     const owner = this.ship.owner();
     const nearbyEnemies = this.mg.nearbyUnits(
@@ -149,12 +147,41 @@ export class ShipMissionRunner {
       PATROL_RADIUS,
       SHIP_LOOKUP_TYPES,
     );
+    const isCarrier = this.ship.type() === UnitType.Carrier;
+
     for (const { unit } of nearbyEnemies) {
       if (unit.owner() === owner) continue;
       if (!unit.isActive()) continue;
       if (!owner.canAttackPlayer(unit.owner(), true)) continue;
-      // missionTargetTile (center) stays intact — runAttackShip will use it
-      // to fall back to patrol when done.
+
+      if (isCarrier) {
+        // Carriers do NOT auto-engage. They flee to the nearest friendly
+        // port. If no port exists, just continue patrolling (no engage).
+        const port = this.nearestFriendlyPort();
+        if (port !== undefined) {
+          this.ship.setMission(UnitMission.MOVE_TO_TILE);
+          this.ship.setMissionTargetTile(port);
+          this.ship.setMissionTargetUnitId(undefined);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("show-message", {
+                detail: {
+                  message: "Carrier is under threat — returning to port",
+                  duration: 4000,
+                  color: "yellow",
+                },
+              }),
+            );
+          }
+          return this.runMoveToTile();
+        }
+        // No friendly port — break out of the engage loop, fall through
+        // to ordinary patrol movement (no auto-engage for carriers).
+        break;
+      }
+
+      // Other ships: auto-engage. Keep missionTargetTile (center) so
+      // runAttackShip can fall back to patrol when target dies.
       this.ship.setMission(UnitMission.ATTACK_SHIP);
       this.ship.setMissionTargetUnitId(unit.id());
       return this.runAttackShip();
@@ -430,6 +457,21 @@ export class ShipMissionRunner {
     } else {
       this.clearMission();
     }
+  }
+
+  private nearestFriendlyPort(): TileRef | undefined {
+    const ports = this.ship.owner().units(UnitType.Port);
+    let nearest: TileRef | undefined;
+    let best = Infinity;
+    for (const p of ports) {
+      if (!p.isActive()) continue;
+      const d = this.mg.euclideanDistSquared(this.ship.tile(), p.tile());
+      if (d < best) {
+        best = d;
+        nearest = p.tile();
+      }
+    }
+    return nearest;
   }
 
   private clearMission() {

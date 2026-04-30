@@ -12,7 +12,11 @@ import { TileRef } from "../game/GameMap";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { PathStatus, SteppingPathFinder } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
-import { airbaseRangeMultiplier } from "./AircraftRange";
+import {
+  airbaseRangeMultiplier,
+  CARRIER_CAPACITY,
+  carrierDockedCount,
+} from "./AircraftRange";
 import { ClusterBombExecution } from "./ClusterBombExecution";
 
 type Phase = "finding" | "outbound" | "attacking" | "returning" | "idle";
@@ -223,6 +227,11 @@ export class StrategicBomberExecution implements Execution {
     }
     for (const u of owner.units(UnitType.Carrier)) {
       if (!u.isActive()) continue;
+      if (
+        u.tile() !== this.bomber.tile() &&
+        carrierDockedCount(u) >= CARRIER_CAPACITY
+      )
+        continue;
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
