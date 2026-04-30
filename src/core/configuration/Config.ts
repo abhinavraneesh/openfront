@@ -177,6 +177,7 @@ export interface Config {
   isReplay(): boolean;
   allianceExtensionPromptOffset(): number;
   combatMultiplier(attacker: UnitType, defender: UnitType): number;
+  armor(unitType: UnitType): number;
   shoreBombardmentRange(): number;
 }
 

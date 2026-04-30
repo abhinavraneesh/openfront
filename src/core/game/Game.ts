@@ -357,11 +357,15 @@ export enum UnitMission {
   // Ship missions
   AUTO = "auto", // Ships: default autonomous patrol (current behavior)
   MOVE_TO_TILE = "move_to_tile", // Ships: pathfind to tile then hold
-  PATROL_AREA = "patrol_area", // Ships: 2-tile radius patrol around missionTargetTile
+  HOLD_POSITION = "hold_position", // Ships: stay on tile, fire opportunistically
+  PATROL_AREA = "patrol_area", // Ships: 2-tile radius patrol around missionTargetTile, auto-engage
   BOMBARD_COAST = "bombard_coast", // Cruiser/BB: bombard missionTargetTile
   ESCORT_UNIT = "escort_unit", // Ships: follow missionTargetUnitId unit
   ATTACK_SHIP = "attack_ship", // Ships: engage missionTargetUnitId unit
   RETURN_TO_PORT = "return_to_port", // Ships: dock at home port
+  HUNT_SUBMARINE = "hunt_submarine", // Destroyer: pursue specific submarine
+  SWEEP_MINES = "sweep_mines", // Destroyer: remove mines near missionTargetTile
+  LAY_MINE = "lay_mine", // Minelayer: move to missionTargetTile and place mine
 }
 
 export const Nukes = unitTypeGroup([

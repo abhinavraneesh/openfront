@@ -474,50 +474,67 @@ export class DefaultConfig implements Config {
         };
         break;
       case UnitType.Destroyer:
+        // 0.9× WARSHIP_HP=1000, 0.8× WARSHIP_DMG=250; scaling matches Warship tier
         info = {
-          cost: this.costWrapper(() => 150_000, UnitType.Destroyer),
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_000_000, (numUnits + 1) * 250_000),
+            UnitType.Destroyer,
+          ),
           maxHealth: 900,
-          damage: 150,
+          damage: 200,
           attackRate: 10,
           range: 100,
-          constructionDuration: this.instantBuild() ? 0 : 120,
+          constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;
       case UnitType.Cruiser:
+        // 2.0× WARSHIP_HP, 1.5× WARSHIP_DMG; significant mid-game investment
         info = {
-          cost: this.costWrapper(() => 300_000, UnitType.Cruiser),
-          maxHealth: 3000,
-          damage: 300,
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 750_000),
+            UnitType.Cruiser,
+          ),
+          maxHealth: 2000,
+          damage: 375,
           attackRate: 8,
           range: 110,
-          constructionDuration: this.instantBuild() ? 0 : 200,
+          constructionDuration: this.instantBuild() ? 0 : 500,
         };
         break;
       case UnitType.Battleship:
+        // 5.0× WARSHIP_HP. Damage tuned to 1200 so BB×2.5×CA-armor=2100 one-shots
+        // a 2000 HP Cruiser per the "Cruiser destroyed ~4 ticks" balance target.
         info = {
-          cost: this.costWrapper(() => 600_000, UnitType.Battleship),
+          cost: this.costWrapper(() => 2_000_000, UnitType.Battleship),
           maxHealth: 5000,
-          damage: 350,
+          damage: 1200,
           attackRate: 15,
           range: 150,
-          constructionDuration: this.instantBuild() ? 0 : 400,
+          constructionDuration: this.instantBuild() ? 0 : 1200,
         };
         break;
       case UnitType.Submarine:
+        // 1.4× WARSHIP_HP. Torpedo damage tuned to 1100: 1100×3.5×0.45=1733/hit,
+        // BB (HP 5000) dies in 3 hits per the "3 torpedo hits" balance target.
+        // attackRate 8 = 800ms reload (slow capital-ship killer).
         info = {
-          cost: this.costWrapper(() => 250_000, UnitType.Submarine),
-          maxHealth: 600,
-          damage: 500,
-          attackRate: 35,
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(2_000_000, (numUnits + 1) * 500_000),
+            UnitType.Submarine,
+          ),
+          maxHealth: 1400,
+          damage: 1100,
+          attackRate: 8,
           range: 90,
-          constructionDuration: this.instantBuild() ? 0 : 250,
+          constructionDuration: this.instantBuild() ? 0 : 600,
         };
         break;
       case UnitType.Minelayer:
+        // 0.5× WARSHIP_HP; utility unit, flat cost, no weapons
         info = {
-          cost: this.costWrapper(() => 80_000, UnitType.Minelayer),
-          maxHealth: 300,
-          constructionDuration: this.instantBuild() ? 0 : 80,
+          cost: this.costWrapper(() => 150_000, UnitType.Minelayer),
+          maxHealth: 500,
+          constructionDuration: this.instantBuild() ? 0 : 200,
         };
         break;
       case UnitType.Airbase:
@@ -588,43 +605,49 @@ export class DefaultConfig implements Config {
         };
         break;
       case UnitType.NavalYard:
+        // Major infrastructure: unlocks Battleship/Submarine/Carrier; Missile Silo tier
         info = {
-          cost: this.costWrapper(() => 750_000, UnitType.NavalYard),
+          cost: this.costWrapper(() => 1_000_000, UnitType.NavalYard),
           maxHealth: 1200,
-          constructionDuration: this.instantBuild() ? 0 : 400,
+          constructionDuration: this.instantBuild() ? 0 : 800,
         };
         break;
       case UnitType.FuelDepot:
         info = {
-          cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
+          cost: this.costWrapper(() => 300_000, UnitType.FuelDepot),
           maxHealth: 600,
-          constructionDuration: this.instantBuild() ? 0 : 150,
+          constructionDuration: this.instantBuild() ? 0 : 300,
         };
         break;
       case UnitType.CoastalBattery:
+        // Scaling cost: first is accessible, second is premium
         info = {
-          cost: this.costWrapper(() => 400_000, UnitType.CoastalBattery),
+          cost: this.costWrapper(
+            (numUnits: number) => Math.min(1_200_000, (numUnits + 1) * 400_000),
+            UnitType.CoastalBattery,
+          ),
           maxHealth: 2700,
           damage: 250,
           attackRate: 30,
           range: 80,
-          constructionDuration: this.instantBuild() ? 0 : 180,
+          constructionDuration: this.instantBuild() ? 0 : 400,
         };
         break;
       case UnitType.Carrier:
+        // 6.0× WARSHIP_HP; H-Bomb tier investment, unarmed floating airbase
         info = {
-          cost: this.costWrapper(() => 2_500_000, UnitType.Carrier),
-          maxHealth: 3000,
+          cost: this.costWrapper(() => 5_000_000, UnitType.Carrier),
+          maxHealth: 6000,
           moveSpeed: 1,
-          constructionDuration: this.instantBuild() ? 0 : 600,
+          constructionDuration: this.instantBuild() ? 0 : 2400,
         };
         break;
       case UnitType.Mine:
-        // Internal unit spawned by Minelayer; not player-buildable
+        // 0.4× WARSHIP_HP flat damage, ignores armor; internal unit spawned by Minelayer
         info = {
           cost: this.costWrapper(() => 0, UnitType.Mine),
           maxHealth: 1,
-          damage: 150,
+          damage: 400,
         };
         break;
       default:
@@ -1252,12 +1275,19 @@ export class DefaultConfig implements Config {
       return 2.5; // vs troops and other buildings
     }
 
+    // --- Minelayer: no weapons ---
+    if (attacker === UnitType.Minelayer) return 0.0;
+
+    // --- Carrier: unarmed ---
+    if (attacker === UnitType.Carrier) return 0.0;
+
     // --- Destroyer: ASW specialist ---
     if (attacker === UnitType.Destroyer) {
       if (defender === UnitType.Submarine) return 3.0;
       if (defender === UnitType.Minelayer) return 2.5;
       if (defender === UnitType.Cruiser || defender === UnitType.Battleship)
         return 0.4;
+      if (defender === UnitType.Carrier) return 0.6;
       return 1.0;
     }
 
@@ -1266,6 +1296,9 @@ export class DefaultConfig implements Config {
       if (airUnits.has(defender)) return 2.0;
       if (defender === UnitType.Destroyer) return 1.8;
       if (defender === UnitType.Submarine) return 0.5;
+      if (defender === UnitType.Carrier) return 1.2;
+      // Slight bonus vs static structures so CA can reduce CB in ~6 shells.
+      if (buildings.has(defender)) return 1.2;
       return 1.0;
     }
 
@@ -1294,5 +1327,29 @@ export class DefaultConfig implements Config {
     }
 
     return 1.0;
+  }
+
+  // Damage-taken multiplier per defender. Lower = tankier.
+  // Applied centrally in NavalShellExecution alongside combatMultiplier.
+  // Mines bypass this (apply damage directly).
+  armor(unitType: UnitType): number {
+    switch (unitType) {
+      case UnitType.Destroyer:
+        return 0.85;
+      case UnitType.Cruiser:
+        return 0.7;
+      case UnitType.Battleship:
+        return 0.45;
+      case UnitType.Submarine:
+        return 0.75;
+      case UnitType.Carrier:
+        return 0.55;
+      case UnitType.Minelayer:
+        return 1.0;
+      case UnitType.Warship:
+        return 0.85;
+      default:
+        return 1.0;
+    }
   }
 }

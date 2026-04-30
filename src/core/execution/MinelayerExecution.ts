@@ -11,18 +11,13 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
-import { MineExecution } from "./MineExecution";
 import { ShipMissionRunner } from "./ShipMissionRunner";
-
-const MINE_INTERVAL = 20;
-const MAX_MINES = 10;
 
 export class MinelayerExecution implements Execution {
   private random: PseudoRandom;
   private minelayer: Unit;
   private mg: Game;
   private pathfinder: WaterPathFinder;
-  private lastMineTick = 0;
   private missionRunner: ShipMissionRunner | null = null;
 
   constructor(
@@ -81,17 +76,7 @@ export class MinelayerExecution implements Execution {
     if (result === "auto") {
       this.patrol();
     }
-    // Mines are laid regardless of mission — they fire from current position.
-    this.maybeLayMine();
-  }
-
-  private maybeLayMine(): void {
-    const ticks = this.mg.ticks();
-    if (ticks - this.lastMineTick < MINE_INTERVAL) return;
-    const owner = this.minelayer.owner();
-    if (owner.units(UnitType.Mine).length >= MAX_MINES) return;
-    this.lastMineTick = ticks;
-    this.mg.addExecution(new MineExecution(owner, this.minelayer.tile()));
+    // Mine laying is entirely mission-driven (LAY_MINE); no auto-mining.
   }
 
   private patrol() {
