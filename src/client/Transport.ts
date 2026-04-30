@@ -196,6 +196,7 @@ export class StartTargetingModeEvent implements GameEvent {
     public readonly onTileSelected: (tile: TileRef) => void,
     public readonly rangeTiles?: number,
     public readonly originTile?: TileRef,
+    public readonly isValidTarget?: (tile: TileRef) => boolean,
   ) {}
 }
 

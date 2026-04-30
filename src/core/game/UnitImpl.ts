@@ -110,8 +110,11 @@ export class UnitImpl implements Unit {
     return this._targetable;
   }
 
-  setPatrolTile(tile: TileRef): void {
-    this._patrolTile = tile;
+  setPatrolTile(tile: TileRef | undefined): void {
+    if (this._patrolTile !== tile) {
+      this._patrolTile = tile;
+      this.mg.addUpdate(this.toUpdate());
+    }
   }
 
   patrolTile(): TileRef | undefined {

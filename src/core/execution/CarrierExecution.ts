@@ -11,6 +11,7 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { ensureShipHomePort, repairShipIfDocked } from "./NavalRepair";
 import { ShipMissionRunner } from "./ShipMissionRunner";
 
 export class CarrierExecution implements Execution {
@@ -39,11 +40,10 @@ export class CarrierExecution implements Execution {
         console.warn(`Failed to spawn Carrier for ${this.input.owner.name()}`);
         return;
       }
-      this.carrier = this.input.owner.buildUnit(
-        UnitType.Carrier,
-        spawn,
-        this.input,
-      );
+      this.carrier = this.input.owner.buildUnit(UnitType.Carrier, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
   }
 
@@ -54,7 +54,9 @@ export class CarrierExecution implements Execution {
       return;
     }
 
-    // Heal slightly if owner has a NavalYard (handled by NavalYardExecution)
+    ensureShipHomePort(this.mg, this.carrier);
+    repairShipIfDocked(this.mg, this.carrier);
+
     this.missionRunner ??= new ShipMissionRunner(
       this.carrier,
       this.mg,

@@ -3,6 +3,7 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { ensureShipHomePort } from "./NavalRepair";
 import { NavalShellExecution } from "./NavalShellExecution";
 
 // Ship types we may need to look up by id (escort/attack target).
@@ -90,9 +91,15 @@ export class ShipMissionRunner {
       case UnitMission.ESCORT_UNIT:
         return this.runEscortUnit();
       case UnitMission.ATTACK_SHIP:
+      case UnitMission.HUNT_SUBMARINE:
         return this.runAttackShip();
+      case UnitMission.LAY_MINE:
+      case UnitMission.SWEEP_MINES:
+        return this.runMoveToTile();
       case UnitMission.RETURN_TO_PORT:
         return this.runReturnToPort();
+      case UnitMission.HOLD_POSITION:
+        return this.runHoldPosition();
       case UnitMission.AUTO:
       case undefined:
         return "auto";
@@ -246,39 +253,22 @@ export class ShipMissionRunner {
   }
 
   private runReturnToPort(): MissionResult {
-    const owner = this.ship.owner();
-    const ports = owner.units(UnitType.Port);
-    if (ports.length === 0) {
-      // No port to return to — fall back to autonomous behavior.
-      this.clearMission();
+    const homePort = ensureShipHomePort(this.mg, this.ship);
+    if (homePort === undefined) {
       return "auto";
     }
-    let nearest: Unit | undefined;
-    let best = Infinity;
-    for (const p of ports) {
-      if (!p.isActive()) continue;
-      const d = this.mg.euclideanDistSquared(this.ship.tile(), p.tile());
-      if (d < best) {
-        best = d;
-        nearest = p;
-      }
+    const dist = this.mg.manhattanDist(this.ship.tile(), homePort.tile());
+    if (dist === 0) {
+      this.ship.setTargetTile(undefined);
+      return "movement";
     }
-    if (!nearest) {
-      this.clearMission();
-      return "auto";
-    }
-    const dist = this.mg.manhattanDist(this.ship.tile(), nearest.tile());
-    if (dist <= 2) {
-      // Docked — heal to full and resume autonomous patrol.
-      const info = this.mg.config().unitInfo(this.stats.shipType);
-      const maxHp = Number(info.maxHealth ?? 100);
-      const heal = Math.max(0, maxHp - this.ship.health());
-      if (heal > 0) this.ship.modifyHealth(heal);
-      this.clearMission();
-      return "auto";
-    }
-    this.stepToward(nearest.tile());
+    this.stepToward(homePort.tile());
     return "full";
+  }
+
+  private runHoldPosition(): MissionResult {
+    this.ship.setTargetTile(undefined);
+    return "movement";
   }
 
   private clearMission() {

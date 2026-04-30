@@ -4,6 +4,7 @@ import { EventBus, GameEvent } from "../../../core/EventBus";
 import { Cell } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameView } from "../../../core/game/GameView";
+import { MouseMoveEvent } from "../../InputHandler";
 import {
   StartTargetingModeEvent,
   StopTargetingModeEvent,
@@ -24,9 +25,13 @@ export class TargetingCursor extends LitElement implements Layer {
   @state() private _cx = 0;
   @state() private _cy = 0;
   @state() private _radius = 0;
+  @state() private _valid = true;
+  @state() private _mx = 0;
+  @state() private _my = 0;
 
   private _originTile: TileRef | undefined = undefined;
   private _rangeTiles: number | undefined = undefined;
+  private _validator: ((tile: TileRef) => boolean) | undefined = undefined;
 
   init() {
     this.eventBus.on(StartTargetingModeEvent, (e) => {
@@ -34,6 +39,7 @@ export class TargetingCursor extends LitElement implements Layer {
       this._label = e.label;
       this._originTile = e.originTile;
       this._rangeTiles = e.rangeTiles;
+      this._validator = e.isValidTarget;
       document.body.classList.add("targeting-active");
     });
     this.eventBus.on(StopTargetingModeEvent, () => {
@@ -41,7 +47,21 @@ export class TargetingCursor extends LitElement implements Layer {
       this._label = "";
       this._originTile = undefined;
       this._rangeTiles = undefined;
+      this._validator = undefined;
       document.body.classList.remove("targeting-active");
+    });
+    this.eventBus.on(MouseMoveEvent, (e) => {
+      if (!this._active || !this.game || !this.transformHandler) return;
+      this._mx = e.x;
+      this._my = e.y;
+      if (this._validator === undefined) {
+        this._valid = true;
+        return;
+      }
+      const cell = this.transformHandler.screenToWorldCoordinates(e.x, e.y);
+      this._valid =
+        this.game.isValidCoord(cell.x, cell.y) &&
+        this._validator(this.game.ref(cell.x, cell.y));
     });
 
     // Cancel on Escape key
@@ -51,6 +71,7 @@ export class TargetingCursor extends LitElement implements Layer {
         this._label = "";
         this._originTile = undefined;
         this._rangeTiles = undefined;
+        this._validator = undefined;
         document.body.classList.remove("targeting-active");
         this.eventBus.emit(new StopTargetingModeEvent());
         this.eventBus.emit(new TargetingCancelledEvent());
@@ -121,6 +142,36 @@ export class TargetingCursor extends LitElement implements Layer {
       color: #9ca3af;
       font-size: 11px;
     }
+    .reticle {
+      position: fixed;
+      width: 22px;
+      height: 22px;
+      transform: translate(-50%, -50%);
+      border: 1px solid currentColor;
+      border-radius: 50%;
+      color: #22c55e;
+      box-shadow: 0 0 10px currentColor;
+    }
+    .reticle::before,
+    .reticle::after {
+      content: "";
+      position: absolute;
+      background: currentColor;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+    .reticle::before {
+      width: 30px;
+      height: 1px;
+    }
+    .reticle::after {
+      width: 1px;
+      height: 30px;
+    }
+    .reticle.invalid {
+      color: #ef4444;
+    }
   `;
 
   render() {
@@ -129,6 +180,10 @@ export class TargetingCursor extends LitElement implements Layer {
       this._rangeTiles !== undefined && this._originTile !== undefined;
     return html`
       <div class="targeting-overlay">
+        <div
+          class=${`reticle ${this._valid ? "" : "invalid"}`}
+          style="left:${this._mx}px;top:${this._my}px"
+        ></div>
         ${hasRange
           ? html`<svg
               style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"

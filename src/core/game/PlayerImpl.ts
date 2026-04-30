@@ -1160,9 +1160,9 @@ export class PlayerImpl implements Player {
         return this.portSpawn(targetTile, validTiles);
       case UnitType.Warship:
       case UnitType.Destroyer:
+      case UnitType.Cruiser:
       case UnitType.Minelayer:
         return this.warshipSpawn(targetTile);
-      case UnitType.Cruiser:
       case UnitType.Battleship:
       case UnitType.Submarine:
       case UnitType.Carrier:
@@ -1329,7 +1329,7 @@ export class PlayerImpl implements Player {
     return best?.tile() ?? false;
   }
 
-  // Requires a Port; then also requires an adjacent NavalYard for advanced ships.
+  // Requires a Port; capital ships also require a nearby NavalYard.
   advancedNavalSpawn(targetTile: TileRef): TileRef | false {
     const spawnTile = this.warshipSpawn(targetTile);
     if (spawnTile === false) return false;

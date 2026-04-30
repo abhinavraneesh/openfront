@@ -361,7 +361,11 @@ export enum UnitMission {
   BOMBARD_COAST = "bombard_coast", // Cruiser/BB: bombard missionTargetTile
   ESCORT_UNIT = "escort_unit", // Ships: follow missionTargetUnitId unit
   ATTACK_SHIP = "attack_ship", // Ships: engage missionTargetUnitId unit
+  HUNT_SUBMARINE = "hunt_submarine", // Ships: engage missionTargetUnitId submarine
+  LAY_MINE = "lay_mine", // Minelayer: move to ocean tile and lay mines
+  SWEEP_MINES = "sweep_mines", // Minelayer: move to ocean tile and clear mines
   RETURN_TO_PORT = "return_to_port", // Ships: dock at home port
+  HOLD_POSITION = "hold_position", // Ships: remain at current/home port
 }
 
 export const Nukes = unitTypeGroup([
@@ -747,7 +751,7 @@ export interface Unit {
   decreaseLevel(destroyer?: Player): void;
 
   // Warships
-  setPatrolTile(tile: TileRef): void;
+  setPatrolTile(tile: TileRef | undefined): void;
   patrolTile(): TileRef | undefined;
 
   // Mission system
