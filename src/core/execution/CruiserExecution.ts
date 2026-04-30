@@ -74,6 +74,7 @@ export class CruiserExecution implements Execution {
           baseDamage: Number(info.damage ?? 200),
           attackRate: info.attackRate ?? 20,
           range: info.range ?? 110,
+          bombardRange: 6,
         },
       );
     }
@@ -160,7 +161,7 @@ export class CruiserExecution implements Execution {
 
   private fireAA(): void {
     const AA_RANGE = 4;
-    const AA_RATE = 10;
+    const AA_RATE = 2;
     const AA_DAMAGE = 80;
     if (this.mg.ticks() - this.lastAAAttack <= AA_RATE) return;
 
