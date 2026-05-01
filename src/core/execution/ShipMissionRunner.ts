@@ -419,15 +419,12 @@ export class ShipMissionRunner {
       return "auto";
     }
     const dist = this.mg.manhattanDist(this.ship.tile(), homePort.tile());
-    if (dist <= 2) {
-      // Heal at port.
-      const info = this.mg.config().unitInfo(this.stats.shipType);
-      const maxHp = Number(info.maxHealth ?? 100);
-      const heal = Math.max(0, maxHp - this.ship.health());
-      if (heal > 0) this.ship.modifyHealth(heal);
+    if (dist === 0) {
+      // Arrived — transition to HOLD_POSITION so repairShipIfDocked() fires
+      // each tick (2 HP/tick at a Naval Yard, passive, no gold cost).
       this.ship.setTargetTile(undefined);
-      this.clearMission();
-      return "auto";
+      this.ship.setMission(UnitMission.HOLD_POSITION);
+      return "movement";
     }
     this.stepToward(homePort.tile());
     return "full";
