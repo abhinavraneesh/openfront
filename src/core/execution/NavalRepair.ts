@@ -64,6 +64,41 @@ export function isDockedAtHomePort(ship: Unit, homePortTile: TileRef): boolean {
   );
 }
 
+const PORT_BLOCKADE_RANGE = 2;
+const PORT_BLOCKADE_THRESHOLD = 3;
+const PORT_BLOCKADE_TYPES: UnitType[] = [
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Carrier,
+  UnitType.Minelayer,
+];
+
+/**
+ * Returns true when 3+ hostile naval units are within 2 tiles of portTile.
+ * Used to gate ship building — blockaded ports cannot queue new ships.
+ */
+export function isPortNavalBlockaded(
+  mg: Game,
+  owner: Player,
+  portTile: TileRef,
+): boolean {
+  let count = 0;
+  for (const { unit } of mg.nearbyUnits(
+    portTile,
+    PORT_BLOCKADE_RANGE,
+    PORT_BLOCKADE_TYPES,
+  )) {
+    if (unit.owner() !== owner && owner.canAttackPlayer(unit.owner(), true)) {
+      count++;
+      if (count >= PORT_BLOCKADE_THRESHOLD) return true;
+    }
+  }
+  return false;
+}
+
 export function hasNavalYardForPort(
   mg: Game,
   owner: Player,
