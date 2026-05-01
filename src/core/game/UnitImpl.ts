@@ -46,6 +46,7 @@ export class UnitImpl implements Unit {
   private _mission: UnitMission | undefined = undefined;
   private _missionTargetTile: TileRef | undefined = undefined;
   private _missionTargetUnitId: number | undefined = undefined;
+  private _blockaded: boolean = false;
 
   constructor(
     private _type: UnitType,
@@ -146,6 +147,17 @@ export class UnitImpl implements Unit {
     this._missionTargetUnitId = id;
   }
 
+  blockaded(): boolean {
+    return this._blockaded;
+  }
+
+  setBlockaded(value: boolean): void {
+    if (this._blockaded !== value) {
+      this._blockaded = value;
+      this.mg.addUpdate(this.toUpdate());
+    }
+  }
+
   isUnit(): this is Unit {
     return true;
   }
@@ -192,6 +204,7 @@ export class UnitImpl implements Unit {
       missionTargetTile: this._missionTargetTile,
       missionTargetUnitId: this._missionTargetUnitId,
       patrolTile: this._patrolTile,
+      blockaded: this._blockaded || undefined,
     };
   }
 

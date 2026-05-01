@@ -204,6 +204,9 @@ export class UnitView {
   missionTargetUnitId(): number | undefined {
     return this.data.missionTargetUnitId;
   }
+  blockaded(): boolean {
+    return this.data.blockaded ?? false;
+  }
   patrolTile(): TileRef | undefined {
     return this.data.patrolTile;
   }
