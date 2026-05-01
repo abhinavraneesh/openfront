@@ -1,4 +1,5 @@
 import { renderNumber, renderTroops } from "../../client/Utils";
+import { isPortNavalBlockaded } from "../execution/NavalRepair";
 import { PseudoRandom } from "../PseudoRandom";
 import { ClientID } from "../Schemas";
 import {
@@ -1281,7 +1282,8 @@ export class PlayerImpl implements Player {
         port.isActive() &&
         !port.isUnderConstruction() &&
         tileComponent !== null &&
-        this.mg.hasWaterComponent(port.tile(), tileComponent),
+        this.mg.hasWaterComponent(port.tile(), tileComponent) &&
+        !isPortNavalBlockaded(this.mg, this, port.tile()),
     );
 
     return bestPort?.tile() ?? false;
