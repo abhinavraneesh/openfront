@@ -762,6 +762,8 @@ export interface Unit {
   setMissionTargetTile(tile: TileRef | undefined): void;
   missionTargetUnitId(): number | undefined;
   setMissionTargetUnitId(id: number | undefined): void;
+  blockaded(): boolean;
+  setBlockaded(value: boolean): void;
 }
 
 export interface TerraNullius {

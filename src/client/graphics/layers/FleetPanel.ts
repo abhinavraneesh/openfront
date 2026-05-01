@@ -36,19 +36,6 @@ const TARGET_SHIP_TYPES: UnitType[] = [
   UnitType.TradeShip,
 ];
 
-const BLOCKADE_TYPES: UnitType[] = [
-  UnitType.Warship,
-  UnitType.Destroyer,
-  UnitType.Cruiser,
-  UnitType.Battleship,
-  UnitType.Submarine,
-  UnitType.Carrier,
-  UnitType.Minelayer,
-];
-
-const BLOCKADE_RANGE = 2;
-const BLOCKADE_THRESHOLD = 3;
-
 interface MissionOption {
   label: string;
   mission: UnitMission;
@@ -462,20 +449,7 @@ export class FleetPanel extends LitElement implements Layer {
   }
 
   private isBlockadedPort(port: UnitView): boolean {
-    const owner = port.owner();
-    let count = 0;
-    const nearby = this.game.nearbyUnits(
-      port.tile(),
-      BLOCKADE_RANGE,
-      BLOCKADE_TYPES,
-    );
-    for (const { unit } of nearby) {
-      if (unit.owner().smallID() === owner.smallID()) continue;
-      if (unit.owner().isFriendly(owner)) continue;
-      count++;
-      if (count >= BLOCKADE_THRESHOLD) return true;
-    }
-    return false;
+    return port.blockaded();
   }
 
   private blockadedPorts(): UnitView[] {
@@ -483,7 +457,7 @@ export class FleetPanel extends LitElement implements Layer {
     if (!me) return [];
     return me
       .units(UnitType.Port)
-      .filter((port) => port.isActive() && this.isBlockadedPort(port));
+      .filter((port) => port.isActive() && port.blockaded());
   }
 
   private renderNoPortIcon() {

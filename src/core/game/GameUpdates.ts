@@ -154,6 +154,7 @@ export interface UnitUpdate {
   missionTargetTile?: TileRef;
   missionTargetUnitId?: number;
   patrolTile?: TileRef;
+  blockaded?: boolean;
 }
 
 export interface AttackUpdate {

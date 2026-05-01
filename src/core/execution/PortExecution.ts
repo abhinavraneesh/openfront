@@ -71,8 +71,12 @@ export class PortExecution implements Execution {
       this.createStation();
     }
 
+    // Compute and broadcast blockade state every tick.
+    const navalBlockaded = this.isNavalBlockaded();
+    this.port.setBlockaded(navalBlockaded);
+
     // Naval trade income: bonus per tick scaled by empire size and worker ratio
-    if (!this.isNavalBlockaded()) {
+    if (!navalBlockaded) {
       const owner = this.port.owner();
       const tiles = owner.numTilesOwned();
       const bonus = Math.floor(tiles / 200) * 2;
@@ -112,7 +116,7 @@ export class PortExecution implements Execution {
   }
 
   shouldSpawnTradeShip(): boolean {
-    if (this.isNavalBlockaded() || this.isBlockaded()) {
+    if (this.port.blockaded() || this.isBlockaded()) {
       const tick = this.mg.ticks();
       if (tick - this.blockadeNotifiedAt > 600) {
         this.blockadeNotifiedAt = tick;
