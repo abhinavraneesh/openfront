@@ -4,6 +4,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { MineExecution } from "./MineExecution";
+import { ensureShipHomePort } from "./NavalRepair";
 import { NavalShellExecution } from "./NavalShellExecution";
 
 // Ship types we may need to look up by id (escort/attack target).
@@ -412,36 +413,23 @@ export class ShipMissionRunner {
   }
 
   private runReturnToPort(): MissionResult {
-    const owner = this.ship.owner();
-    const ports = owner.units(UnitType.Port);
-    if (ports.length === 0) {
+    const homePort = ensureShipHomePort(this.mg, this.ship);
+    if (homePort === undefined) {
       this.clearMission();
       return "auto";
     }
-    let nearest: Unit | undefined;
-    let best = Infinity;
-    for (const p of ports) {
-      if (!p.isActive()) continue;
-      const d = this.mg.euclideanDistSquared(this.ship.tile(), p.tile());
-      if (d < best) {
-        best = d;
-        nearest = p;
-      }
-    }
-    if (!nearest) {
-      this.clearMission();
-      return "auto";
-    }
-    const dist = this.mg.manhattanDist(this.ship.tile(), nearest.tile());
+    const dist = this.mg.manhattanDist(this.ship.tile(), homePort.tile());
     if (dist <= 2) {
+      // Heal at port.
       const info = this.mg.config().unitInfo(this.stats.shipType);
       const maxHp = Number(info.maxHealth ?? 100);
       const heal = Math.max(0, maxHp - this.ship.health());
       if (heal > 0) this.ship.modifyHealth(heal);
+      this.ship.setTargetTile(undefined);
       this.clearMission();
       return "auto";
     }
-    this.stepToward(nearest.tile());
+    this.stepToward(homePort.tile());
     return "full";
   }
 

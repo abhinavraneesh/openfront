@@ -11,6 +11,7 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { ensureShipHomePort, repairShipIfDocked } from "./NavalRepair";
 import { ShellExecution } from "./ShellExecution";
 import { ShipMissionRunner } from "./ShipMissionRunner";
 
@@ -44,11 +45,10 @@ export class WarshipExecution implements Execution {
         );
         return;
       }
-      this.warship = this.input.owner.buildUnit(
-        UnitType.Warship,
-        spawn,
-        this.input,
-      );
+      this.warship = this.input.owner.buildUnit(UnitType.Warship, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
   }
 
@@ -58,10 +58,8 @@ export class WarshipExecution implements Execution {
       return;
     }
 
-    const hasPort = this.warship.owner().unitCount(UnitType.Port) > 0;
-    if (hasPort) {
-      this.warship.modifyHealth(1);
-    }
+    ensureShipHomePort(this.mg, this.warship);
+    repairShipIfDocked(this.mg, this.warship);
 
     if (this.missionRunner === null) {
       const info = this.mg.config().unitInfo(UnitType.Warship);

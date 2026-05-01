@@ -752,7 +752,7 @@ export interface Unit {
   decreaseLevel(destroyer?: Player): void;
 
   // Warships
-  setPatrolTile(tile: TileRef): void;
+  setPatrolTile(tile: TileRef | undefined): void;
   patrolTile(): TileRef | undefined;
 
   // Mission system

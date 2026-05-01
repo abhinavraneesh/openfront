@@ -207,6 +207,7 @@ export class StartTargetingModeEvent implements GameEvent {
     public readonly rangeTiles?: number,
     public readonly originTile?: TileRef,
     public readonly mode: TargetingMode = "tile",
+    public readonly isValidTarget?: (tile: TileRef) => boolean,
   ) {}
 }
 

@@ -1,15 +1,4 @@
-import { Execution, Game, Unit, UnitType } from "../game/Game";
-
-const HEAL_RANGE = 30;
-const NAVAL_TYPES = [
-  UnitType.Warship,
-  UnitType.Destroyer,
-  UnitType.Cruiser,
-  UnitType.Battleship,
-  UnitType.Submarine,
-  UnitType.Minelayer,
-  UnitType.Carrier,
-] as const;
+import { Execution, Game, Unit } from "../game/Game";
 
 export class NavalYardExecution implements Execution {
   private mg: Game;
@@ -27,21 +16,8 @@ export class NavalYardExecution implements Execution {
       return;
     }
 
-    const owner = this.navalYard.owner();
-
     // Passive income from naval operations
-    owner.addGold(15n);
-
-    const nearby = this.mg.nearbyUnits(
-      this.navalYard.tile(),
-      HEAL_RANGE,
-      NAVAL_TYPES,
-    );
-    for (const { unit } of nearby) {
-      if (unit.owner() === owner && unit.isActive()) {
-        unit.modifyHealth(1);
-      }
-    }
+    this.navalYard.owner().addGold(15n);
   }
 
   isActive(): boolean {
