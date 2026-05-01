@@ -288,6 +288,7 @@ export class ClientGameRunner {
   private myPlayer: PlayerView | null = null;
   private isActive = false;
   private targetingCallback: ((tile: TileRef) => void) | null = null;
+  private targetingValidator: ((tile: TileRef) => boolean) | null = null;
 
   private turnsSeen = 0;
   private lastMousePosition: { x: number; y: number } | null = null;
@@ -377,9 +378,11 @@ export class ClientGameRunner {
     this.eventBus.on(MouseMoveEvent, this.onMouseMove.bind(this));
     this.eventBus.on(StartTargetingModeEvent, (e) => {
       this.targetingCallback = e.onTileSelected;
+      this.targetingValidator = e.isValidTarget ?? null;
     });
     this.eventBus.on(StopTargetingModeEvent, () => {
       this.targetingCallback = null;
+      this.targetingValidator = null;
     });
     this.eventBus.on(AutoUpgradeEvent, this.autoUpgradeEvent.bind(this));
     this.eventBus.on(
@@ -576,8 +579,12 @@ export class ClientGameRunner {
 
     // Targeting mode: route click to the requester and stop normal processing
     if (this.targetingCallback !== null) {
+      if (this.targetingValidator !== null && !this.targetingValidator(tile)) {
+        return;
+      }
       const cb = this.targetingCallback;
       this.targetingCallback = null;
+      this.targetingValidator = null;
       this.eventBus.emit(new StopTargetingModeEvent());
       cb(tile);
       return;

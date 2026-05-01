@@ -17,6 +17,7 @@ import { Layer } from "./Layer";
 const goldCoinIcon = assetUrl("images/GoldCoinIcon.svg");
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
 const swordIcon = assetUrl("images/SwordIcon.svg");
+const fleetIcon = assetUrl("images/BoatIconWhite.svg");
 
 @customElement("control-panel")
 export class ControlPanel extends LitElement implements Layer {
@@ -323,10 +324,11 @@ export class ControlPanel extends LitElement implements Layer {
         </div>
         <!-- Fleet -->
         <button
-          class="shrink-0 border border-gray-600 rounded-md font-bold text-white text-sm py-0.5 px-2 hover:bg-gray-700"
+          class="shrink-0 inline-flex items-center gap-1 border border-gray-600 rounded-md font-bold text-white text-sm py-0.5 px-2 hover:bg-gray-700"
           translate="no"
           @click=${() => this.onFleetClick()}
         >
+          <img src=${fleetIcon} alt="" aria-hidden="true" class="h-3 w-3" />
           Fleet
         </button>
       </div>
@@ -427,10 +429,11 @@ export class ControlPanel extends LitElement implements Layer {
         </div>
         <!-- Fleet -->
         <button
-          class="shrink-0 border border-gray-600 rounded-md font-bold text-white text-xs py-1 px-1.5 hover:bg-gray-700"
+          class="shrink-0 inline-flex items-center gap-1 border border-gray-600 rounded-md font-bold text-white text-xs py-1 px-1.5 hover:bg-gray-700"
           translate="no"
           @click=${() => this.onFleetClick()}
         >
+          <img src=${fleetIcon} alt="" aria-hidden="true" class="h-3 w-3" />
           Fleet
         </button>
         <!-- Troop bar -->

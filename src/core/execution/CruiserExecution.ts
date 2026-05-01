@@ -11,6 +11,7 @@ import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
+import { ensureShipHomePort, repairShipIfDocked } from "./NavalRepair";
 import { NavalShellExecution } from "./NavalShellExecution";
 import { ShipMissionRunner } from "./ShipMissionRunner";
 
@@ -43,11 +44,10 @@ export class CruiserExecution implements Execution {
         console.warn(`Failed to spawn Cruiser for ${this.input.owner.name()}`);
         return;
       }
-      this.cruiser = this.input.owner.buildUnit(
-        UnitType.Cruiser,
-        spawn,
-        this.input,
-      );
+      this.cruiser = this.input.owner.buildUnit(UnitType.Cruiser, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
   }
 
@@ -58,9 +58,8 @@ export class CruiserExecution implements Execution {
       return;
     }
 
-    if (this.cruiser.owner().unitCount(UnitType.Port) > 0) {
-      this.cruiser.modifyHealth(1);
-    }
+    ensureShipHomePort(this.mg, this.cruiser);
+    repairShipIfDocked(this.mg, this.cruiser);
 
     if (this.missionRunner === null) {
       const info = this.mg.config().unitInfo(UnitType.Cruiser);

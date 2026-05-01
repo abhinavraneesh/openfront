@@ -4,6 +4,7 @@ import {
   isUnit,
   OwnerComp,
   Unit,
+  UnitMission,
   UnitParams,
   UnitType,
 } from "../game/Game";
@@ -12,6 +13,7 @@ import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
 import { PseudoRandom } from "../PseudoRandom";
 import { MineExecution } from "./MineExecution";
+import { ensureShipHomePort, repairShipIfDocked } from "./NavalRepair";
 import { ShipMissionRunner } from "./ShipMissionRunner";
 
 const MINE_INTERVAL = 20;
@@ -46,11 +48,10 @@ export class MinelayerExecution implements Execution {
         );
         return;
       }
-      this.minelayer = this.input.owner.buildUnit(
-        UnitType.Minelayer,
-        spawn,
-        this.input,
-      );
+      this.minelayer = this.input.owner.buildUnit(UnitType.Minelayer, spawn, {
+        ...this.input,
+        patrolTile: spawn,
+      });
     }
   }
 
@@ -61,9 +62,8 @@ export class MinelayerExecution implements Execution {
       return;
     }
 
-    if (this.minelayer.owner().unitCount(UnitType.Port) > 0) {
-      this.minelayer.modifyHealth(1);
-    }
+    ensureShipHomePort(this.mg, this.minelayer);
+    repairShipIfDocked(this.mg, this.minelayer);
 
     this.missionRunner ??= new ShipMissionRunner(
       this.minelayer,
@@ -82,7 +82,21 @@ export class MinelayerExecution implements Execution {
       this.patrol();
     }
     // Mines are laid regardless of mission — they fire from current position.
-    this.maybeLayMine();
+    if (this.minelayer.mission() === UnitMission.SWEEP_MINES) {
+      this.sweepMines();
+    } else {
+      this.maybeLayMine();
+    }
+  }
+
+  private sweepMines(): void {
+    const mines = this.mg.nearbyUnits(this.minelayer.tile(), 2, UnitType.Mine);
+    for (const { unit } of mines) {
+      if (unit.owner() !== this.minelayer.owner() && unit.isActive()) {
+        unit.delete(false);
+        return;
+      }
+    }
   }
 
   private maybeLayMine(): void {

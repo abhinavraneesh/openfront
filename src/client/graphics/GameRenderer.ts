@@ -256,6 +256,7 @@ export function createRenderer(
   }
   fleetPanel.game = game;
   fleetPanel.eventBus = eventBus;
+  fleetPanel.transformHandler = transformHandler;
 
   const structureLayer = new StructureLayer(game, eventBus, transformHandler);
   const samRadiusLayer = new SAMRadiusLayer(game, eventBus, uiState);
