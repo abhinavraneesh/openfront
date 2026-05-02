@@ -121,7 +121,7 @@ export class PortExecution implements Execution {
       if (tick - this.blockadeNotifiedAt > 600) {
         this.blockadeNotifiedAt = tick;
         this.mg.displayMessage(
-          "events_display.port_blockaded",
+          `Port at ${this.port.owner().displayName()} is under blockade`,
           MessageType.PORT_BLOCKADED,
           this.port.owner().id(),
         );

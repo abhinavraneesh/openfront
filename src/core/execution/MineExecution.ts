@@ -1,4 +1,11 @@
-import { Execution, Game, Player, Unit, UnitType } from "../game/Game";
+import {
+  Execution,
+  Game,
+  MessageType,
+  Player,
+  Unit,
+  UnitType,
+} from "../game/Game";
 import { TileRef } from "../game/GameMap";
 
 const MINE_LIFETIME = 300;
@@ -69,6 +76,14 @@ export class MineExecution implements Execution {
   private detonate(target: Unit): void {
     const damage = this.mg.config().unitInfo(UnitType.Mine).damage ?? 400;
     target.modifyHealth(-damage, this.owner);
+    this.mine.setReachedTarget(); // flags detonation so FxLayer plays explosion
+    const tx = Math.round(this.mg.x(target.tile()));
+    const ty = Math.round(this.mg.y(target.tile()));
+    this.mg.displayMessage(
+      `${target.type()} hit a mine near (${tx}, ${ty})`,
+      MessageType.UNIT_DESTROYED,
+      target.owner().id(),
+    );
     this.mine.delete();
     this.active = false;
   }
