@@ -84,13 +84,21 @@ export class DestroyerExecution implements Execution {
       this.destroyer.setTargetUnit(this.findTarget());
       this.patrol();
       if (this.destroyer.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.destroyer.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     } else if (result === "movement") {
       // Mission handled movement; allow opportunistic combat.
       this.destroyer.setTargetUnit(this.findTarget());
       if (this.destroyer.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.destroyer.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     }
     // "full" — mission handled both, but ASW still fires (point-defense).
@@ -163,6 +171,29 @@ export class DestroyerExecution implements Execution {
         );
         return;
       }
+    }
+  }
+
+  private huntDownTradeShip(): void {
+    const target = this.destroyer.targetUnit();
+    if (!target?.isActive()) {
+      this.destroyer.setTargetUnit(undefined);
+      return;
+    }
+    const result = this.pathfinder.next(
+      this.destroyer.tile(),
+      target.tile(),
+      5,
+    );
+    switch (result.status) {
+      case PathStatus.COMPLETE:
+        this.destroyer.owner().captureUnit(target);
+        this.destroyer.setTargetUnit(undefined);
+        this.destroyer.move(this.destroyer.tile());
+        return;
+      case PathStatus.NEXT:
+        this.destroyer.move(result.node);
+        break;
     }
   }
 

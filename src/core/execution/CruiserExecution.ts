@@ -83,12 +83,20 @@ export class CruiserExecution implements Execution {
       this.cruiser.setTargetUnit(this.findTarget());
       this.patrol();
       if (this.cruiser.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.cruiser.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     } else if (result === "movement") {
       this.cruiser.setTargetUnit(this.findTarget());
       if (this.cruiser.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.cruiser.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     }
     // AA always fires (point-defense).
@@ -131,6 +139,25 @@ export class CruiserExecution implements Execution {
       }
     }
     return best;
+  }
+
+  private huntDownTradeShip(): void {
+    const target = this.cruiser.targetUnit();
+    if (!target?.isActive()) {
+      this.cruiser.setTargetUnit(undefined);
+      return;
+    }
+    const result = this.pathfinder.next(this.cruiser.tile(), target.tile(), 5);
+    switch (result.status) {
+      case PathStatus.COMPLETE:
+        this.cruiser.owner().captureUnit(target);
+        this.cruiser.setTargetUnit(undefined);
+        this.cruiser.move(this.cruiser.tile());
+        return;
+      case PathStatus.NEXT:
+        this.cruiser.move(result.node);
+        break;
+    }
   }
 
   private shootTarget() {

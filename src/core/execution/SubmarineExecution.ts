@@ -90,12 +90,20 @@ export class SubmarineExecution implements Execution {
       this.submarine.setTargetUnit(this.findTarget());
       this.patrol();
       if (this.submarine.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.submarine.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     } else if (result === "movement") {
       this.submarine.setTargetUnit(this.findTarget());
       if (this.submarine.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.submarine.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     }
   }
@@ -149,6 +157,29 @@ export class SubmarineExecution implements Execution {
       }
     }
     return priorityTarget ?? fallbackTarget;
+  }
+
+  private huntDownTradeShip(): void {
+    const target = this.submarine.targetUnit();
+    if (!target?.isActive()) {
+      this.submarine.setTargetUnit(undefined);
+      return;
+    }
+    const result = this.pathfinder.next(
+      this.submarine.tile(),
+      target.tile(),
+      5,
+    );
+    switch (result.status) {
+      case PathStatus.COMPLETE:
+        this.submarine.owner().captureUnit(target);
+        this.submarine.setTargetUnit(undefined);
+        this.submarine.move(this.submarine.tile());
+        return;
+      case PathStatus.NEXT:
+        this.submarine.move(result.node);
+        break;
+    }
   }
 
   private shootTarget() {

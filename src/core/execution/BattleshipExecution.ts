@@ -84,12 +84,20 @@ export class BattleshipExecution implements Execution {
       this.battleship.setTargetUnit(this.findTarget());
       this.patrol();
       if (this.battleship.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.battleship.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     } else if (result === "movement") {
       this.battleship.setTargetUnit(this.findTarget());
       if (this.battleship.targetUnit() !== undefined) {
-        this.shootTarget();
+        if (this.battleship.targetUnit()!.type() === UnitType.TradeShip) {
+          this.huntDownTradeShip();
+        } else {
+          this.shootTarget();
+        }
       }
     }
   }
@@ -130,6 +138,29 @@ export class BattleshipExecution implements Execution {
       }
     }
     return best;
+  }
+
+  private huntDownTradeShip(): void {
+    const target = this.battleship.targetUnit();
+    if (!target?.isActive()) {
+      this.battleship.setTargetUnit(undefined);
+      return;
+    }
+    const result = this.pathfinder.next(
+      this.battleship.tile(),
+      target.tile(),
+      5,
+    );
+    switch (result.status) {
+      case PathStatus.COMPLETE:
+        this.battleship.owner().captureUnit(target);
+        this.battleship.setTargetUnit(undefined);
+        this.battleship.move(this.battleship.tile());
+        return;
+      case PathStatus.NEXT:
+        this.battleship.move(result.node);
+        break;
+    }
   }
 
   private shootTarget() {
