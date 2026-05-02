@@ -10,6 +10,7 @@ import { BattleshipExecution } from "../src/core/execution/BattleshipExecution";
 import { CarrierExecution } from "../src/core/execution/CarrierExecution";
 import { CruiserExecution } from "../src/core/execution/CruiserExecution";
 import { DestroyerExecution } from "../src/core/execution/DestroyerExecution";
+import { FighterExecution } from "../src/core/execution/FighterExecution";
 import { MineExecution } from "../src/core/execution/MineExecution";
 import { MinelayerExecution } from "../src/core/execution/MinelayerExecution";
 import {
@@ -847,5 +848,68 @@ describe("Full combat simulations", () => {
 
     expect(sub.isActive()).toBe(false); // sub destroyed by escorts
     expect(carrier.isActive()).toBe(true); // carrier protected
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 14. Carrier aircraft cascade
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Carrier aircraft cascade", () => {
+  test("carrier sunk: fighter with no other base crashes on next tick", async () => {
+    await freshGame();
+
+    // Build carrier (sole home base for the fighter)
+    const carrierTile = wTile();
+    const carrier = p1.buildUnit(UnitType.Carrier, carrierTile, {
+      patrolTile: carrierTile,
+    });
+
+    // Build a fighter docked at the carrier tile
+    const fighter = p1.buildUnit(UnitType.Fighter, carrierTile, {
+      patrolTile: carrierTile,
+    });
+    const fExec = new FighterExecution(fighter);
+    fExec.init(game, 0);
+    expect(fighter.isActive()).toBe(true);
+
+    // Sink the carrier — no other airbases or carriers exist
+    carrier.delete();
+    expect(carrier.isActive()).toBe(false);
+
+    // FighterExecution.updateHomeBase() finds nothing → deletes fighter
+    fExec.tick(1);
+
+    expect(fighter.isActive()).toBe(false); // crashed: no home base
+  });
+
+  test("carrier sunk: fighter rebases to surviving airbase", async () => {
+    await freshGame();
+
+    // Build carrier as initial home base
+    const carrierTile = wTile();
+    const carrier = p1.buildUnit(UnitType.Carrier, carrierTile, {
+      patrolTile: carrierTile,
+    });
+
+    // Also build an airbase on land — provides an alternate home
+    const landTile = game.ref(COAST_X - 1, 10); // x=6 is land
+    p1.conquer(landTile);
+    p1.buildUnit(UnitType.Airbase, landTile, {});
+
+    // Build a fighter docked at the carrier tile
+    const fighter = p1.buildUnit(UnitType.Fighter, carrierTile, {
+      patrolTile: carrierTile,
+    });
+    const fExec = new FighterExecution(fighter);
+    fExec.init(game, 0);
+
+    // Sink the carrier — airbase is still alive
+    carrier.delete();
+
+    // FighterExecution.updateHomeBase() finds the airbase → fighter survives
+    fExec.tick(1);
+
+    expect(fighter.isActive()).toBe(true); // rebased to airbase, still flying
   });
 });

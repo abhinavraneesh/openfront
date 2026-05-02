@@ -81,7 +81,6 @@ const BASE_OPTIONS: MissionOption[] = [
     targetingMode: "ship-escort",
   },
   { label: "Return to port", mission: UnitMission.RETURN_TO_PORT },
-  { label: "Hold position", mission: UnitMission.HOLD_POSITION },
   {
     label: "Attack ship",
     mission: UnitMission.ATTACK_SHIP,
@@ -91,21 +90,12 @@ const BASE_OPTIONS: MissionOption[] = [
     targetingMode: "ship-attack",
   },
   {
-    label: "Hunt submarine →",
-    mission: UnitMission.HUNT_SUBMARINE,
-    needsTarget: true,
-    targetingLabel: "Select enemy submarine to hunt",
-    specialAttackShip: true,
-    targetingMode: "ship-attack",
-    onlyFor: [UnitType.Destroyer],
-  },
-  {
     label: "Hunt submarine",
     mission: UnitMission.HUNT_SUBMARINE,
     needsTarget: true,
-    targetingLabel: "Select enemy submarine",
+    targetingLabel: "Select enemy submarine to hunt",
     specialHuntSubmarine: true,
-    onlyFor: [UnitType.Destroyer, UnitType.Submarine],
+    onlyFor: [UnitType.Destroyer],
   },
   {
     label: "Bombard coast",
