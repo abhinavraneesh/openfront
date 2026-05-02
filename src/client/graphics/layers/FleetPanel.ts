@@ -44,6 +44,7 @@ interface MissionOption {
   targetingMode?: TargetingMode;
   oceanOnly?: boolean;
   rangeFromShip?: boolean;
+  shoreBombard?: boolean;
 }
 
 const BASE_OPTIONS: MissionOption[] = [
@@ -97,10 +98,10 @@ const BASE_OPTIONS: MissionOption[] = [
     label: "Bombard coast",
     mission: UnitMission.BOMBARD_COAST,
     needsTarget: true,
-    targetingLabel: "Select coastal target",
+    targetingLabel: "Select coastal structure to bombard",
     onlyFor: [UnitType.Cruiser, UnitType.Battleship],
     targetingMode: "bombard",
-    rangeFromShip: true,
+    shoreBombard: true,
   },
   {
     label: "Lay mine →",
@@ -190,6 +191,8 @@ export class FleetPanel extends LitElement implements Layer {
   @state() private _hidden = true;
   @state() private _tickCounter = 0;
 
+  private _confirmedBombardTargets = new Map<number, TileRef>();
+
   init() {
     this.eventBus.on(ShowFleetPanelEvent, () => this.toggle());
     this.eventBus.on(CloseViewEvent, () => this.hide());
@@ -231,6 +234,9 @@ export class FleetPanel extends LitElement implements Layer {
 
     // Dashed lines from ships to their mission destinations.
     this.renderShipMissionLines(context);
+
+    // Reticle on confirmed bombard targets.
+    this.renderBombardReticles(context);
   }
 
   /**
@@ -301,6 +307,50 @@ export class FleetPanel extends LitElement implements Layer {
     context.restore();
   }
 
+  private renderBombardReticles(context: CanvasRenderingContext2D) {
+    if (this._confirmedBombardTargets.size === 0) return;
+    // Prune stale entries (ship no longer bombarding).
+    const stale: number[] = [];
+    for (const [shipId] of this._confirmedBombardTargets) {
+      const unit = this.game.unit(shipId);
+      if (
+        !unit ||
+        !unit.isActive() ||
+        unit.mission() !== UnitMission.BOMBARD_COAST
+      )
+        stale.push(shipId);
+    }
+    for (const id of stale) this._confirmedBombardTargets.delete(id);
+    if (this._confirmedBombardTargets.size === 0) return;
+
+    const pulse = (Math.sin(performance.now() / 280) + 1) / 2;
+    const scale = this.transformHandler?.scale ?? 1;
+    context.save();
+    context.strokeStyle = `rgba(251, 146, 60, ${0.65 + pulse * 0.35})`;
+    context.lineWidth = Math.max(1.5 / scale, 0.4);
+    for (const [, tile] of this._confirmedBombardTargets) {
+      const x = this.game.x(tile) + 0.5;
+      const y = this.game.y(tile) + 0.5;
+      const r = 2.2 + pulse * 0.8;
+      const gap = r + 0.8;
+      const arm = gap + 2.5;
+      context.beginPath();
+      context.arc(x, y, r, 0, Math.PI * 2);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(x - arm, y);
+      context.lineTo(x - gap, y);
+      context.moveTo(x + gap, y);
+      context.lineTo(x + arm, y);
+      context.moveTo(x, y - arm);
+      context.lineTo(x, y - gap);
+      context.moveTo(x, y + gap);
+      context.lineTo(x, y + arm);
+      context.stroke();
+    }
+    context.restore();
+  }
+
   shouldTransform(): boolean {
     return true;
   }
@@ -367,10 +417,9 @@ export class FleetPanel extends LitElement implements Layer {
     let range: number | undefined;
     if (opt.rangeFromShip) {
       range = this.game.config().unitInfo(ship.type()).range ?? undefined;
-    } else if (opt.mission === UnitMission.BOMBARD_COAST) {
-      // Spec: BB bombard range 10 tiles, CA bombard range 6 tiles.
-      if (ship.type() === UnitType.Battleship) range = 10;
-      else if (ship.type() === UnitType.Cruiser) range = 6;
+    } else if (opt.shoreBombard) {
+      if (ship.type() === UnitType.Battleship) range = 7;
+      else if (ship.type() === UnitType.Cruiser) range = 4;
     }
 
     this.hide();
@@ -408,6 +457,9 @@ export class FleetPanel extends LitElement implements Layer {
             );
             return;
           }
+          if (opt.shoreBombard) {
+            this._confirmedBombardTargets.set(shipId, tile);
+          }
           this.eventBus.emit(
             new SetUnitMissionIntentEvent(shipId, opt.mission, tile),
           );
@@ -427,6 +479,15 @@ export class FleetPanel extends LitElement implements Layer {
     range?: number,
   ): boolean {
     if (opt.oceanOnly && !this.game.isOcean(tile)) return false;
+    if (opt.shoreBombard) {
+      if (!this.game.isShore(tile)) return false;
+      if (
+        range !== undefined &&
+        this.game.euclideanDistSquared(ship.tile(), tile) > range * range
+      )
+        return false;
+      return true;
+    }
     if (
       range !== undefined &&
       this.game.euclideanDistSquared(ship.tile(), tile) > range * range

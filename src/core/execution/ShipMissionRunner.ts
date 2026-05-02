@@ -218,7 +218,7 @@ export class ShipMissionRunner {
       this.stepToward(target);
       return "movement";
     }
-    // In range — bombard every 3 ticks. Find nearest enemy unit near target.
+    // In range — hold position and bombard every 3 ticks.
     const BOMBARD_RATE = 3;
     if (this.mg.ticks() - this.lastAttack >= BOMBARD_RATE) {
       this.lastAttack = this.mg.ticks();
@@ -230,6 +230,8 @@ export class ShipMissionRunner {
         if (unit.owner() === owner) continue;
         if (!unit.isActive()) continue;
         if (!owner.canAttackPlayer(unit.owner(), true)) continue;
+        // Only hit structures/ships on shoreline tiles.
+        if (!this.mg.isShore(unit.tile())) continue;
         if (distSquared < bestDist) {
           victim = unit;
           bestDist = distSquared;

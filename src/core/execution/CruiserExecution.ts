@@ -73,7 +73,7 @@ export class CruiserExecution implements Execution {
           baseDamage: Number(info.damage ?? 200),
           attackRate: info.attackRate ?? 20,
           range: info.range ?? 110,
-          bombardRange: 6,
+          bombardRange: 4,
         },
       );
     }
