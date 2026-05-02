@@ -91,6 +91,9 @@ export class FxLayer implements Layer {
       case UnitType.Carrier:
         this.onWarshipEvent(unit);
         break;
+      case UnitType.Mine:
+        this.onMineEvent(unit);
+        break;
       case UnitType.Shell:
         this.onShellEvent(unit);
         break;
@@ -134,6 +137,21 @@ export class FxLayer implements Layer {
           this.eventBus.emit(new PlaySoundEffectEvent("build-warship"));
         }
         break;
+    }
+  }
+
+  onMineEvent(unit: UnitView) {
+    // Fire when the mine is consumed (detonated or expired).
+    if (!unit.isActive() && unit.reachedTarget() && this.fxEnabled()) {
+      const x = this.game.x(unit.lastTile());
+      const y = this.game.y(unit.lastTile());
+      const explosion = new SpriteFx(
+        this.animatedSpriteLoader,
+        x,
+        y,
+        FxType.MiniExplosion,
+      );
+      this.allFx.push(explosion);
     }
   }
 

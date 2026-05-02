@@ -1,4 +1,4 @@
-import { Game, Unit, UnitMission, UnitType } from "../game/Game";
+import { Game, MessageType, Unit, UnitMission, UnitType } from "../game/Game";
 import { TileRef } from "../game/GameMap";
 import { WaterPathFinder } from "../pathfinding/PathFinder";
 import { PathStatus } from "../pathfinding/types";
@@ -379,11 +379,20 @@ export class ShipMissionRunner {
     if (this.mg.ticks() - this.sweepStartTick >= 10) {
       const owner = this.ship.owner();
       const nearby = this.mg.nearbyUnits(this.ship.tile(), 2, [UnitType.Mine]);
+      let cleared = 0;
       for (const { unit } of nearby) {
         if (unit.owner() === owner) continue;
         if (!unit.isActive()) continue;
         unit.delete();
+        cleared++;
       }
+      const sx = Math.round(this.mg.x(this.ship.tile()));
+      const sy = Math.round(this.mg.y(this.ship.tile()));
+      this.mg.displayMessage(
+        `Sweep complete — ${cleared} mine(s) cleared near (${sx}, ${sy})`,
+        MessageType.UNIT_DESTROYED,
+        owner.id(),
+      );
       this.sweepStartTick = -1;
       this.clearMission();
       return "auto";
@@ -412,9 +421,19 @@ export class ShipMissionRunner {
     return "auto";
   }
 
+  private lastNoPortNotifyTick = -9999;
+
   private runReturnToPort(): MissionResult {
     const homePort = ensureShipHomePort(this.mg, this.ship);
     if (homePort === undefined) {
+      if (this.mg.ticks() - this.lastNoPortNotifyTick > 600) {
+        this.lastNoPortNotifyTick = this.mg.ticks();
+        this.mg.displayMessage(
+          `${this.ship.type()} has no port — cannot repair`,
+          MessageType.UNIT_DESTROYED,
+          this.ship.owner().id(),
+        );
+      }
       this.clearMission();
       return "auto";
     }

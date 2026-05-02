@@ -1,7 +1,7 @@
 import { colord, Colord } from "colord";
 import { EventBus } from "../../../core/EventBus";
 import { Theme } from "../../../core/configuration/Config";
-import { UnitType } from "../../../core/game/Game";
+import { UnitMission, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameView, UnitView } from "../../../core/game/GameView";
 import { BezenhamLine } from "../../../core/utilities/Line";
@@ -304,26 +304,68 @@ export class UnitLayer implements Layer {
     if (unitsToUpdate) {
       // the clearing and drawing of unit sprites need to be done in 2 passes
       // otherwise the sprite of a unit can be drawn on top of another unit
-      this.clearUnitsCells(unitsToUpdate);
-      this.drawUnitsCells(unitsToUpdate);
+      const clearedBounds = this.clearUnitsCells(unitsToUpdate);
+      // Any other unit whose draw area overlaps a cleared region must be
+      // redrawn too — otherwise overlapping/adjacent units lose pixels.
+      const redrawSet = new Map<number, UnitView>();
+      for (const u of unitsToUpdate) redrawSet.set(u.id(), u);
+      if (clearedBounds.length > 0) {
+        for (const u of this.game.units()) {
+          if (redrawSet.has(u.id())) continue;
+          if (!u.isActive()) continue;
+          const ux = this.game.x(u.tile());
+          const uy = this.game.y(u.tile());
+          const ur = this.unitDrawHalfSize(u);
+          for (const b of clearedBounds) {
+            if (
+              ux + ur >= b.x &&
+              ux - ur <= b.x + b.w &&
+              uy + ur >= b.y &&
+              uy - ur <= b.y + b.h
+            ) {
+              redrawSet.set(u.id(), u);
+              break;
+            }
+          }
+        }
+      }
+      this.drawUnitsCells(Array.from(redrawSet.values()));
     }
   }
 
-  private clearUnitsCells(unitViews: UnitView[]) {
+  private unitDrawHalfSize(unit: UnitView): number {
+    if (SPRITE_BASE_PLATE_TYPES.has(unit.type())) {
+      return Math.max(SPRITE_PLATE_RADIUS, SPRITE_WORLD_SIZE / 2) + 1;
+    }
+    if (!isSpriteReady(unit)) return 8;
+    const sprite = getColoredSprite(unit, this.theme);
+    return sprite.width / 2 + 1;
+  }
+
+  private clearUnitsCells(
+    unitViews: UnitView[],
+  ): { x: number; y: number; w: number; h: number }[] {
+    const bounds: { x: number; y: number; w: number; h: number }[] = [];
     unitViews
       .filter((unitView) => isSpriteReady(unitView))
       .forEach((unitView) => {
-        const sprite = getColoredSprite(unitView, this.theme);
-        const clearsize = sprite.width + 1;
+        const half = this.unitDrawHalfSize(unitView);
+        const clearsize = half * 2;
         const lastX = this.game.x(unitView.lastTile());
         const lastY = this.game.y(unitView.lastTile());
-        this.context.clearRect(
-          lastX - clearsize / 2,
-          lastY - clearsize / 2,
-          clearsize,
-          clearsize,
-        );
+        const curX = this.game.x(unitView.tile());
+        const curY = this.game.y(unitView.tile());
+        for (const [cx, cy] of [
+          [lastX, lastY],
+          [curX, curY],
+        ]) {
+          const x = cx - half;
+          const y = cy - half;
+          this.context.clearRect(x, y, clearsize, clearsize);
+          bounds.push({ x, y, w: clearsize, h: clearsize });
+        }
       });
+    return bounds;
   }
 
   private drawUnitsCells(unitViews: UnitView[]) {
@@ -399,21 +441,37 @@ export class UnitLayer implements Layer {
   }
 
   private handleMineEvent(unit: UnitView) {
-    const rel = this.relationship(unit);
     this.clearCell(this.game.x(unit.lastTile()), this.game.y(unit.lastTile()));
     if (!unit.isActive()) return;
-    this.paintCell(
-      this.game.x(unit.tile()),
-      this.game.y(unit.tile()),
-      rel,
-      unit.owner().borderColor(),
-      255,
-    );
+
+    // Only the mine's owner can see it — enemies see nothing.
+    if (unit.owner() !== this.game.myPlayer()) return;
+
+    const x = this.game.x(unit.tile()) + 0.5;
+    const y = this.game.y(unit.tile()) + 0.5;
+    const half = 0.3; // half-size of the X in world units
+    this.context.save();
+    this.context.strokeStyle = "rgba(220, 38, 38, 0.7)"; // faint red X
+    this.context.lineWidth = 0.15;
+    this.context.beginPath();
+    this.context.moveTo(x - half, y - half);
+    this.context.lineTo(x + half, y + half);
+    this.context.moveTo(x + half, y - half);
+    this.context.lineTo(x - half, y + half);
+    this.context.stroke();
+    this.context.restore();
   }
 
   private handleWarShipEvent(unit: UnitView) {
     if (unit.targetUnitId()) {
       this.drawSprite(unit, colord("rgb(200,0,0)"));
+    } else if (
+      unit.type() === UnitType.Carrier &&
+      unit.mission() === UnitMission.RETURN_TO_PORT &&
+      unit.owner() === this.game.myPlayer()
+    ) {
+      // Carrier is fleeing — draw with a yellow-orange tint so it's distinct.
+      this.drawSprite(unit, colord("rgb(251,146,60)"));
     } else {
       this.drawSprite(unit);
     }
@@ -680,6 +738,45 @@ export class UnitLayer implements Layer {
         drawSize,
       );
       if (!targetable) {
+        this.context.restore();
+      }
+
+      // HP-critical red tint — only for own ships at <= 30% health.
+      if (
+        unit.hasHealth() &&
+        unit.owner() === this.game.myPlayer() &&
+        SPRITE_BASE_PLATE_TYPES.has(unit.type())
+      ) {
+        const maxHealth = Number(
+          this.game.config().unitInfo(unit.type()).maxHealth ?? 0,
+        );
+        if (maxHealth > 0 && unit.health() / maxHealth <= 0.3) {
+          this.context.save();
+          this.context.globalAlpha = 0.35;
+          this.context.fillStyle = "rgb(239,68,68)";
+          this.context.beginPath();
+          this.context.arc(x, y, SPRITE_PLATE_RADIUS, 0, Math.PI * 2);
+          this.context.fill();
+          this.context.restore();
+        }
+      }
+
+      // Homeless indicator — small red X on map sprite when no home port.
+      if (
+        SPRITE_BASE_PLATE_TYPES.has(unit.type()) &&
+        unit.owner() === this.game.myPlayer() &&
+        unit.patrolTile() === undefined
+      ) {
+        const half = SPRITE_WORLD_SIZE * 0.28;
+        this.context.save();
+        this.context.strokeStyle = "rgba(239,68,68,0.85)";
+        this.context.lineWidth = 1.2;
+        this.context.beginPath();
+        this.context.moveTo(x - half, y - half);
+        this.context.lineTo(x + half, y + half);
+        this.context.moveTo(x + half, y - half);
+        this.context.lineTo(x - half, y + half);
+        this.context.stroke();
         this.context.restore();
       }
     }
