@@ -1,6 +1,5 @@
-import { html, LitElement } from "lit";
+import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
 import { UnitMission, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
@@ -16,9 +15,6 @@ import { TransformHandler } from "../TransformHandler";
 import { Layer } from "./Layer";
 import { GoToPositionEvent } from "./Leaderboard";
 import { TargetingCancelledEvent } from "./TargetingCursor";
-
-const boatIcon = assetUrl("images/BoatIconWhite.svg");
-const anchorIcon = assetUrl("images/AnchorIcon.svg");
 
 const SHIP_TYPES: UnitType[] = [
   UnitType.Destroyer,
@@ -212,23 +208,96 @@ export class FleetPanel extends LitElement implements Layer {
 
   renderLayer(context: CanvasRenderingContext2D) {
     if (!this.game) return;
+
+    // Pulsing red rings on blockaded ports.
     const ports = this.blockadedPorts();
-    if (ports.length === 0) return;
+    if (ports.length > 0) {
+      const scale = this.transformHandler?.scale ?? 1;
+      const pulse = (Math.sin(performance.now() / 220) + 1) / 2;
+      context.save();
+      context.lineWidth = Math.max(1 / scale, 0.45);
+      context.strokeStyle = `rgba(239, 68, 68, ${0.5 + pulse * 0.35})`;
+      context.fillStyle = `rgba(239, 68, 68, ${0.05 + pulse * 0.06})`;
+      for (const port of ports) {
+        const x = this.game.x(port.tile()) + 0.5;
+        const y = this.game.y(port.tile()) + 0.5;
+        context.beginPath();
+        context.arc(x, y, 4 + pulse * 1.5, 0, Math.PI * 2);
+        context.fill();
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    // Dashed lines from ships to their mission destinations.
+    this.renderShipMissionLines(context);
+  }
+
+  /**
+   * Draw a dashed line + pulsing destination marker from each ship to its
+   * active mission target tile (MOVE_TO_TILE, PATROL_AREA, BOMBARD_COAST).
+   * Runs in world-space coordinates (shouldTransform = true).
+   */
+  private renderShipMissionLines(context: CanvasRenderingContext2D) {
+    const me = this.game.myPlayer();
+    if (!me) return;
 
     const scale = this.transformHandler?.scale ?? 1;
-    const pulse = (Math.sin(performance.now() / 220) + 1) / 2;
+    const pulse = (Math.sin(performance.now() / 400) + 1) / 2;
+    const lw = Math.max(1.2 / scale, 0.3);
+    const dashLen = 5 / scale;
+    const gapLen = 3 / scale;
+
+    // Mission → stroke color
+    const missionColor: Partial<Record<UnitMission, string>> = {
+      [UnitMission.MOVE_TO_TILE]: "#22d3ee", // cyan
+      [UnitMission.PATROL_AREA]: "#facc15", // yellow
+      [UnitMission.BOMBARD_COAST]: "#fb923c", // orange
+    };
+
     context.save();
-    context.lineWidth = Math.max(1 / scale, 0.45);
-    context.strokeStyle = `rgba(239, 68, 68, ${0.5 + pulse * 0.35})`;
-    context.fillStyle = `rgba(239, 68, 68, ${0.05 + pulse * 0.06})`;
-    for (const port of ports) {
-      const x = this.game.x(port.tile()) + 0.5;
-      const y = this.game.y(port.tile()) + 0.5;
-      context.beginPath();
-      context.arc(x, y, 4 + pulse * 1.5, 0, Math.PI * 2);
-      context.fill();
-      context.stroke();
+    context.lineWidth = lw;
+
+    for (const type of SHIP_TYPES) {
+      for (const ship of me.units(type)) {
+        if (!ship.isActive() || ship.isUnderConstruction()) continue;
+        const mission = ship.mission();
+        const destTile = ship.missionTargetTile();
+        if (destTile === undefined) continue;
+        const color = missionColor[mission as UnitMission];
+        if (!color) continue;
+
+        const sx = this.game.x(ship.tile()) + 0.5;
+        const sy = this.game.y(ship.tile()) + 0.5;
+        const dx = this.game.x(destTile) + 0.5;
+        const dy = this.game.y(destTile) + 0.5;
+
+        // Skip when already at destination.
+        const dist2 = (sx - dx) ** 2 + (sy - dy) ** 2;
+        if (dist2 < 0.25) continue;
+
+        context.strokeStyle = color;
+
+        // Dashed line from ship to destination.
+        context.globalAlpha = 0.55;
+        context.setLineDash([dashLen, gapLen]);
+        context.beginPath();
+        context.moveTo(sx, sy);
+        context.lineTo(dx, dy);
+        context.stroke();
+
+        // Pulsing circle at destination.
+        const r = Math.max(2.5 / scale, 0.6) + (pulse * 0.8) / scale;
+        context.globalAlpha = 0.7 + pulse * 0.3;
+        context.setLineDash([]);
+        context.beginPath();
+        context.arc(dx, dy, r, 0, Math.PI * 2);
+        context.stroke();
+      }
     }
+
+    context.setLineDash([]);
+    context.globalAlpha = 1;
     context.restore();
   }
 
@@ -450,18 +519,144 @@ export class FleetPanel extends LitElement implements Layer {
       .filter((port) => port.isActive() && port.blockaded());
   }
 
-  private renderNoPortIcon() {
-    return html`<span
-      class="relative inline-flex h-5 w-5 items-center justify-center rounded border border-red-500/70 bg-red-950/80"
-      title="No port"
-    >
-      <img src=${anchorIcon} alt="" class="h-3.5 w-3.5 invert opacity-90" />
-      <span
-        class="absolute -right-1 -top-1 text-[12px] font-black leading-none text-red-300"
-        >x</span
-      >
-    </span>`;
-  }
+  static styles = css`
+    :host {
+      display: block;
+    }
+    .panel {
+      position: fixed;
+      top: 80px;
+      right: 16px;
+      width: 340px;
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
+      z-index: 950;
+      background: #1e1e1e;
+      border: 1px solid #2c2c2c;
+      border-radius: 8px;
+      color: #e5e7eb;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+    }
+    .hidden {
+      display: none !important;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .title {
+      color: #facc15;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .section-label {
+      color: #9ca3af;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 10px 0 4px 0;
+    }
+    .divider {
+      border: none;
+      border-top: 1px solid #2c2c2c;
+      margin: 6px 0;
+    }
+    select,
+    button {
+      background: #2c2c2c;
+      color: #e5e7eb;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 4px 6px;
+      font-family: monospace;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) {
+      background: #3a3a3a;
+      border-color: #666;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .ship-row {
+      border: 1px solid #2c2c2c;
+      border-radius: 4px;
+      padding: 6px;
+      margin-bottom: 6px;
+    }
+    .ship-head {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 3px;
+    }
+    .ship-name {
+      font-weight: bold;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .hp-pct {
+      font-size: 11px;
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+    .badge {
+      font-size: 10px;
+      font-weight: bold;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .badge-blockade {
+      background: rgba(220, 38, 38, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.5);
+      color: #fca5a5;
+    }
+    .badge-noport {
+      background: rgba(113, 113, 122, 0.2);
+      border: 1px solid rgba(113, 113, 122, 0.4);
+      color: #a1a1aa;
+    }
+    .hp-bar {
+      height: 5px;
+      background: #2c2c2c;
+      border-radius: 3px;
+      margin: 2px 0 6px 0;
+      overflow: hidden;
+    }
+    .hp-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+    .ship-footer {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ship-status {
+      flex: 1;
+      color: #9ca3af;
+      font-size: 11px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty {
+      color: #9ca3af;
+      padding: 8px 0;
+      text-align: center;
+    }
+  `;
 
   render() {
     if (this._hidden) return html``;
@@ -471,47 +666,28 @@ export class FleetPanel extends LitElement implements Layer {
 
     return html`
       <div
-        class="fixed right-4 top-20 z-[950] max-h-[calc(100vh-120px)] w-[360px] overflow-hidden rounded-2xl bg-zinc-900/95 text-zinc-100 shadow-2xl shadow-black/50 ring-1 ring-white/10 pointer-events-auto font-sans antialiased"
+        class="panel"
         @mousedown=${(e: MouseEvent) => e.stopPropagation()}
         @click=${(e: MouseEvent) => e.stopPropagation()}
         @wheel=${(e: WheelEvent) => e.stopPropagation()}
       >
-        <div
-          class="sticky top-0 z-10 flex items-center gap-2 border-b border-white/10 bg-zinc-900/95 px-4 py-3"
-        >
-          <img src=${boatIcon} alt="" class="h-5 w-5 opacity-90" />
-          <div class="text-sm font-bold tracking-wide text-yellow-300">
-            FLEET${me ? ` - ${me.displayName()}` : ""}
-          </div>
-          <button
-            class="ml-auto flex h-7 w-7 items-center justify-center rounded-full bg-zinc-700 text-white shadow-sm transition-colors hover:bg-red-500"
-            @click=${() => this.hide()}
-            aria-label="Close"
-            title="Close"
+        <div class="header">
+          <span class="title"
+            >⚓ Fleet${me ? ` — ${me.displayName()}` : ""}</span
           >
-            x
-          </button>
+          <button @click=${() => this.hide()}>✕</button>
         </div>
-        <div class="max-h-[calc(100vh-178px)] overflow-y-auto px-4 py-3">
-          ${groups.size === 0
-            ? html`<div class="py-6 text-center text-sm text-zinc-400">
-                No ships in fleet
-              </div>`
-            : Array.from(groups.entries()).map(
-                ([type, list]) => html`
-                  <div
-                    class="mb-2 mt-1 text-[11px] font-bold tracking-[0.14em] text-zinc-400"
-                  >
-                    ${groupHeader(type)} (${list.length})
-                  </div>
-                  <div class="mb-3 flex flex-col gap-2">
-                    ${list.map((ship, index) =>
-                      this.renderShipRow(ship, index + 1),
-                    )}
-                  </div>
-                `,
-              )}
-        </div>
+        ${groups.size === 0
+          ? html`<div class="empty">No ships in fleet</div>`
+          : Array.from(groups.entries()).map(
+              ([type, list]) => html`
+                <div class="section-label">
+                  ${groupHeader(type)} (${list.length})
+                </div>
+                <hr class="divider" />
+                ${list.map((ship, i) => this.renderShipRow(ship, i + 1))}
+              `,
+            )}
       </div>
     `;
   }
@@ -529,47 +705,28 @@ export class FleetPanel extends LitElement implements Layer {
     const blockaded = homePort !== undefined && this.isBlockadedPort(homePort);
 
     return html`
-      <div
-        class="cursor-pointer rounded-md border border-white/10 bg-black/20 p-2 transition-colors hover:border-zinc-500 hover:bg-zinc-800/70"
-        @click=${() => this.onFocus(ship)}
-      >
-        <div class="flex items-center gap-2">
-          <button
-            class="min-w-0 flex-1 truncate text-left text-sm font-bold text-white hover:text-yellow-300"
-            @click=${(e: MouseEvent) => {
-              e.stopPropagation();
-              this.onFocus(ship);
-            }}
+      <div class="ship-row">
+        <div class="ship-head">
+          <span class="ship-name"
+            >${shipTypeLabel(ship.type())} #${displayId}</span
           >
-            ${shipTypeLabel(ship.type())} #${displayId}
-          </button>
-          ${homeless ? this.renderNoPortIcon() : ""}
           ${blockaded
-            ? html`<span
-                class="rounded border border-red-500/70 bg-red-950/80 px-1.5 py-0.5 text-[10px] font-bold leading-none text-red-200"
-                >BLOCKADED</span
-              >`
+            ? html`<span class="badge badge-blockade">BLOCKADE</span>`
             : ""}
-          <span
-            class="w-9 text-right text-xs font-bold tabular-nums text-zinc-200"
-            >${pct}%</span
-          >
+          ${homeless
+            ? html`<span class="badge badge-noport">NO PORT</span>`
+            : ""}
+          <span class="hp-pct">${pct}%</span>
         </div>
-        <div
-          class="mt-1 h-2 overflow-hidden rounded bg-zinc-950 ring-1 ring-white/10"
-        >
+        <div class="hp-bar">
           <div
-            class="h-full transition-[width] duration-200"
+            class="hp-fill"
             style="width:${pct}%;background:${this.hpColor(pct)}"
           ></div>
         </div>
-        <div class="mt-2 flex items-center gap-2">
-          <div class="min-w-0 flex-1 truncate text-xs text-zinc-400">
-            ${statusText(currentMission)}
-          </div>
+        <div class="ship-footer">
+          <span class="ship-status">${statusText(currentMission)}</span>
           <select
-            class="max-w-[136px] rounded-md border border-zinc-600 bg-zinc-800 px-2 py-1 text-xs font-bold text-zinc-100 hover:bg-zinc-700"
-            @click=${(e: MouseEvent) => e.stopPropagation()}
             @change=${(e: Event) => {
               const select = e.target as HTMLSelectElement;
               this.onMissionChange(ship, select.value);
@@ -581,17 +738,16 @@ export class FleetPanel extends LitElement implements Layer {
               const applies = missionApplies(opt, ship.type());
               return html`<option value=${opt.mission} ?disabled=${!applies}>
                 ${opt.label}${currentMission === opt.mission
-                  ? " *"
+                  ? " ✓"
                   : ""}${applies ? "" : " (N/A)"}
               </option>`;
             })}
           </select>
+          <button @click=${() => this.onFocus(ship)} title="Go to ship">
+            ⊙
+          </button>
         </div>
       </div>
     `;
-  }
-
-  createRenderRoot() {
-    return this;
   }
 }

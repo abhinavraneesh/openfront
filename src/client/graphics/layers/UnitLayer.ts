@@ -372,8 +372,15 @@ export class UnitLayer implements Layer {
     // getColoredSprite throws when a sprite hasn't finished async-loading yet,
     // which kills the rest of the batch and leaves later units invisible.
     // Skip not-ready units here; init() schedules a redraw once load completes.
+    // Exception: Shell and Mine use paintCell (no sprite) so always process them.
     unitViews
-      .filter((unitView) => !unitView.isActive() || isSpriteReady(unitView))
+      .filter(
+        (unitView) =>
+          !unitView.isActive() ||
+          isSpriteReady(unitView) ||
+          unitView.type() === UnitType.Shell ||
+          unitView.type() === UnitType.Mine,
+      )
       .forEach((unitView) => this.onUnitEvent(unitView));
   }
 

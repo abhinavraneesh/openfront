@@ -1,12 +1,14 @@
 import { css, html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { EventBus } from "../../../core/EventBus";
+import { CARRIER_CAPACITY } from "../../../core/execution/AircraftRange";
 import { UnitMission, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
 import { GameView, UnitView } from "../../../core/game/GameView";
 import { CloseViewEvent, MouseUpEvent } from "../../InputHandler";
 import {
   BuildUnitIntentEvent,
+  SendDeleteUnitIntentEvent,
   SendUpgradeStructureIntentEvent,
   SetUnitMissionIntentEvent,
   ShowAirbasePanelEvent,
@@ -134,6 +136,9 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
   // When a tile-picking flow is in progress we suppress the next outside-click
   // hide so the panel stays open after the targeting click commits.
   private _targetingActive = false;
+  // Confirmed strike targets — unitId → tile — drawn as animated reticles on
+  // the map canvas until the unit changes mission or becomes inactive.
+  private _confirmedTargets = new Map<number, TileRef>();
 
   init() {
     this.eventBus.on(ShowAirbasePanelEvent, (e) => this.show(e.unitId));
@@ -237,6 +242,10 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     );
   }
 
+  private onDeleteUnit(unitId: number) {
+    this.eventBus.emit(new SendDeleteUnitIntentEvent(unitId));
+  }
+
   private onMissionChange(unit: UnitView, value: string) {
     if (!value) return;
     const options = MISSION_OPTIONS[unit.type()] ?? [];
@@ -250,6 +259,8 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     if (opt.needsTarget) {
       this.startTargetingForUnit(unit, opt);
     } else {
+      // Clear any stored target reticle when switching to a non-target mission.
+      this._confirmedTargets.delete(unit.id());
       this.eventBus.emit(new SetUnitMissionIntentEvent(unit.id(), opt.mission));
     }
   }
@@ -292,6 +303,8 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
             this.eventBus.emit(
               new SetUnitMissionIntentEvent(unitId, opt.mission, tile),
             );
+            // Record confirmed target so we can draw a reticle on it.
+            this._confirmedTargets.set(unitId, tile);
           },
           maxRange,
           originTile,
@@ -319,6 +332,7 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const hostLevel =
       host && host.type() === UnitType.Airbase ? host.level() : 1;
     const maxFuel = baseMaxFuel * hostLevel;
+    const moveSpeed = info.moveSpeed ?? 1;
     if (unit.type() === UnitType.Fighter) {
       // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
       // Max ticks outbound: (maxFuel - 8) / 3
@@ -327,6 +341,75 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     // Bombers: shouldReturnHome: fuel <= ceil(dist/speed) + 5
     // Max ticks outbound: (maxFuel - 5) / 2
     return Math.floor((maxFuel - 5) / 2) * moveSpeed;
+  }
+
+  /**
+   * Draws an animated crosshair reticle on every confirmed strike target tile.
+   * Called each render frame by GameRenderer (world-space coordinates because
+   * shouldTransform returns true).
+   */
+  renderLayer(context: CanvasRenderingContext2D) {
+    if (!this.game || !this.transformHandler) return;
+    if (this._confirmedTargets.size === 0) return;
+
+    // Prune stale entries: units that are gone or no longer on a target mission.
+    const TARGET_MISSIONS = new Set<UnitMission>([
+      UnitMission.STRIKE_TARGET,
+      UnitMission.CLUSTER_STRIKE,
+      UnitMission.ATTACK_TILE,
+    ]);
+    const stale: number[] = [];
+    for (const [unitId] of this._confirmedTargets) {
+      const unit = this.game.unit(unitId);
+      if (
+        !unit ||
+        !unit.isActive() ||
+        !TARGET_MISSIONS.has(unit.mission() as UnitMission)
+      ) {
+        stale.push(unitId);
+      }
+    }
+    for (const id of stale) this._confirmedTargets.delete(id);
+
+    if (this._confirmedTargets.size === 0) return;
+
+    const pulse = (Math.sin(performance.now() / 280) + 1) / 2;
+    const scale = this.transformHandler.scale ?? 1;
+
+    context.save();
+    context.strokeStyle = `rgba(250, 160, 20, ${0.65 + pulse * 0.35})`;
+    context.lineWidth = Math.max(1.5 / scale, 0.4);
+
+    for (const [, tile] of this._confirmedTargets) {
+      const x = this.game.x(tile) + 0.5;
+      const y = this.game.y(tile) + 0.5;
+      const r = 2.2 + pulse * 0.8;
+      const gap = r + 0.8;
+      const arm = gap + 2.5;
+
+      // Outer pulsing ring
+      context.beginPath();
+      context.arc(x, y, r, 0, Math.PI * 2);
+      context.stroke();
+
+      // Crosshair arms
+      context.beginPath();
+      context.moveTo(x - arm, y);
+      context.lineTo(x - gap, y);
+      context.moveTo(x + gap, y);
+      context.lineTo(x + arm, y);
+      context.moveTo(x, y - arm);
+      context.lineTo(x, y - gap);
+      context.moveTo(x, y + gap);
+      context.lineTo(x, y + arm);
+      context.stroke();
+    }
+
+    context.restore();
+  }
+
+  shouldTransform(): boolean {
+    return true;
   }
 
   private onNationSelect(smallID: number) {
@@ -496,14 +579,34 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     }
     .aircraft-head {
       display: flex;
-      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
       grid-column: 1 / -1;
     }
     .aircraft-name {
       font-weight: bold;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .aircraft-status {
       color: #9ca3af;
+      white-space: nowrap;
+    }
+    button.delete-btn {
+      background: transparent;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 1px 5px;
+      font-size: 11px;
+      line-height: 1.4;
+      border-radius: 3px;
+    }
+    button.delete-btn:hover:not(:disabled) {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #f87171;
     }
     .actions {
       display: flex;
@@ -534,8 +637,11 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const buildSeconds = Math.round((buildInfo.constructionDuration ?? 0) / 10);
 
     const isAirbase = host.type() === UnitType.Airbase;
+    const isCarrier = host.type() === UnitType.Carrier;
     const airbaseLevel = isAirbase ? host.level() : 0;
     const me = this.game.myPlayer();
+    // Carrier capacity: cap builds when the deck is full.
+    const carrierFull = isCarrier && stationed.length >= CARRIER_CAPACITY;
     // Approximate next upgrade cost using the same formula as DefaultConfig:
     // 500k * 2^(total airbase levels built), capped at 16M.
     // totalUnitLevels() sums levels of all owned airbases, which tracks
@@ -583,6 +689,11 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
 
         <hr class="divider" />
         <div class="section-label">Build queue</div>
+        ${isCarrier
+          ? html`<div class="meta" style="margin-bottom:4px">
+              On deck: ${stationed.length} / ${CARRIER_CAPACITY}
+            </div>`
+          : ""}
         <div class="build-row">
           <select
             @change=${(e: Event) => {
@@ -598,7 +709,13 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
               `,
             )}
           </select>
-          <button class="primary" @click=${() => this.onBuild()}>Build</button>
+          <button
+            class="primary"
+            ?disabled=${carrierFull}
+            @click=${() => this.onBuild()}
+          >
+            ${carrierFull ? "Deck full" : "Build"}
+          </button>
         </div>
         <div class="meta" style="margin-top:4px">
           Build time: ${buildSeconds}s
@@ -674,6 +791,13 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
           <span class="aircraft-status">
             HP ${hpPct}% · ${statusText(currentMission)}
           </span>
+          <button
+            class="delete-btn"
+            title="Dismiss aircraft"
+            @click=${() => this.onDeleteUnit(u.id())}
+          >
+            ✕
+          </button>
         </div>
         <select
           style="grid-column: 1 / -1"
