@@ -18,8 +18,10 @@ import { CASUtils } from "./CASUtils";
 // Helicopters are slower air units — they use air pathfinding but prefer land
 // (no fuel, unlimited operation, patrol radius around spawn city)
 const HELI_TARGETS = [UnitType.DefensePost, UnitType.SAMLauncher] as const;
-// CAS_NATION priority: hunt ground/air units of the targeted nation.
-const CAS_TARGETS = [
+const HELI_PATROL_RANGE = 40;
+
+// Targets the ATTACK_TILE mission can engage near the chosen tile.
+const ATTACK_TILE_TARGETS = [
   UnitType.DefensePost,
   UnitType.SAMLauncher,
   UnitType.MissileSilo,
@@ -31,7 +33,15 @@ const CAS_TARGETS = [
   UnitType.NavalYard,
   UnitType.FuelDepot,
 ] as const;
-const HELI_PATROL_RANGE = 40;
+
+// CAS_NATION: troops removed from target nation per attack tick.
+const CAS_TROOP_DAMAGE = 3000;
+// How often (ticks) to re-sample the shared border anchor tile.
+const CAS_ANCHOR_TTL = 25;
+// Radius around the border anchor to search for enemy DefensePosts.
+const CAS_DEFENSE_POST_RANGE = 25;
+// Patrol wander radius around the anchor tile (tiles).
+const CAS_PATROL_RANGE = 20;
 
 export class AttackHelicopterExecution implements Execution {
   private heli: Unit;
@@ -40,6 +50,9 @@ export class AttackHelicopterExecution implements Execution {
   private random: PseudoRandom;
   private homeBaseTile: TileRef;
   private lastAttack = 0;
+  private lastTroopDamage = 0;
+  private casAnchorTile: TileRef | null = null;
+  private casAnchorAge = 0;
 
   constructor(
     private input: (UnitParams<UnitType.AttackHelicopter> & OwnerComp) | Unit,
@@ -114,19 +127,14 @@ export class AttackHelicopterExecution implements Execution {
       }
     }
 
-    // CAS_NATION: hunt the commanded nation's structures.
+    // CAS_NATION: patrol the shared border, destroy DefensePosts, drain troops.
     if (mission === UnitMission.CAS_NATION) {
       const nationId = this.heli.missionTargetUnitId();
       if (nationId !== undefined) {
         const nation = this.mg.playerBySmallID(nationId);
         if (nation?.isPlayer()) {
-          const target = this.findNationTarget(nation as Player, range * 2);
-          if (target) {
-            this.engageTarget(target, moveSpeed, attackRate, damage);
-            return;
-          }
-          // No target found — hover toward enemy's nearest structure cluster
-          // by patrolling toward home (no fuel, so safe to wait).
+          this.doCASNation(nation as Player, moveSpeed, attackRate, damage);
+          return;
         }
       }
     }
@@ -163,7 +171,7 @@ export class AttackHelicopterExecution implements Execution {
 
   private findTargetNearTile(tile: TileRef, range: number): Unit | undefined {
     const owner = this.heli.owner();
-    const nearby = this.mg.nearbyUnits(tile, range, CAS_TARGETS);
+    const nearby = this.mg.nearbyUnits(tile, range, ATTACK_TILE_TARGETS);
     let best: Unit | undefined;
     let bestDist = Infinity;
     for (const { unit, distSquared } of nearby) {
@@ -179,15 +187,71 @@ export class AttackHelicopterExecution implements Execution {
     return best;
   }
 
-  private findNationTarget(nation: Player, range: number): Unit | undefined {
+  private doCASNation(
+    nation: Player,
+    moveSpeed: number,
+    attackRate: number,
+    damage: number,
+  ): void {
+    // Refresh border anchor periodically so the heli drifts along the whole front.
+    if (this.casAnchorTile === null || ++this.casAnchorAge >= CAS_ANCHOR_TTL) {
+      this.casAnchorTile = this.findSharedBorderAnchor(nation);
+      this.casAnchorAge = 0;
+    }
+
+    const anchor = this.casAnchorTile;
+    if (anchor === null) {
+      // No shared border yet — sit tight near home.
+      this.patrol(moveSpeed);
+    } else {
+      const target = this.findDefensePostNear(nation, anchor);
+      if (target) {
+        this.engageTarget(target, moveSpeed, attackRate, damage);
+      } else {
+        this.patrolNearAnchor(anchor, moveSpeed);
+      }
+    }
+
+    // Direct troop drain — fires on the attack cadence regardless of whether
+    // there is a DefensePost target, so the heli hurts them even in the open.
+    if (this.mg.ticks() - this.lastTroopDamage > attackRate) {
+      this.lastTroopDamage = this.mg.ticks();
+      (nation as Player).removeTroops(CAS_TROOP_DAMAGE);
+    }
+  }
+
+  // Iterate up to 500 of our own border tiles and return one that is adjacent
+  // to the target nation's territory, chosen at random from the matches found.
+  private findSharedBorderAnchor(nation: Player): TileRef | null {
     const owner = this.heli.owner();
-    const nearby = this.mg.nearbyUnits(this.heli.tile()!, range, CAS_TARGETS);
+    const shared: TileRef[] = [];
+    let checked = 0;
+    for (const tile of owner.borderTiles()) {
+      if (++checked > 500) break;
+      for (const neighbor of this.mg.neighbors(tile)) {
+        if (this.mg.owner(neighbor) === nation) {
+          shared.push(tile);
+          break;
+        }
+      }
+    }
+    if (shared.length === 0) return null;
+    return shared[this.random.nextInt(0, shared.length - 1)];
+  }
+
+  private findDefensePostNear(
+    nation: Player,
+    anchor: TileRef,
+  ): Unit | undefined {
+    const nearby = this.mg.nearbyUnits(anchor, CAS_DEFENSE_POST_RANGE, [
+      UnitType.DefensePost,
+    ]);
     let best: Unit | undefined;
     let bestDist = Infinity;
     for (const { unit, distSquared } of nearby) {
       if (
         unit.owner() === nation &&
-        owner.canAttackPlayer(unit.owner(), true) &&
+        !unit.isUnderConstruction() &&
         distSquared < bestDist
       ) {
         best = unit;
@@ -195,6 +259,35 @@ export class AttackHelicopterExecution implements Execution {
       }
     }
     return best;
+  }
+
+  private patrolNearAnchor(anchor: TileRef, moveSpeed: number): void {
+    if (this.heli.targetTile() === undefined) {
+      this.heli.setTargetTile(
+        CASUtils.randomPatrolTile(
+          this.mg,
+          anchor,
+          this.random,
+          CAS_PATROL_RANGE,
+          true,
+        ),
+      );
+    }
+    if (this.heli.targetTile() !== undefined) {
+      this.pathFinder = CASUtils.moveToward(
+        this.mg,
+        this.pathFinder,
+        this.heli,
+        this.heli.targetTile()!,
+        moveSpeed,
+      );
+      if (
+        this.mg.manhattanDist(this.heli.tile(), this.heli.targetTile()!) === 0
+      ) {
+        this.heli.setTargetTile(undefined);
+        this.pathFinder = PathFinding.Air(this.mg);
+      }
+    }
   }
 
   private findTarget(range: number): Unit | undefined {
