@@ -399,9 +399,9 @@ export class TacticalBomberExecution implements Execution {
     this.bomber.setTargetUnit(undefined);
     this.commandedStrikeTile = null;
     this.missionTargetTileSeen = null;
-    // Clear the unit's mission so the player doesn't have to re-toggle to
-    // re-issue a STRIKE_TARGET on the same tile in the future.
-    this.bomber.setMission(undefined);
+    // Stand down after strike so the plane returns home and waits for the
+    // next player order instead of autonomously re-finding targets.
+    this.bomber.setMission(UnitMission.STAND_DOWN);
     this.bomber.setMissionTargetTile(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);

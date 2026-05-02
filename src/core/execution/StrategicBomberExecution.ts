@@ -388,10 +388,9 @@ export class StrategicBomberExecution implements Execution {
     this.armedTargetTile = null;
     this.commandedStrikeTile = null;
     this.missionTargetTileSeen = null;
-    // Clear the player-issued mission so the panel reflects "Idle" rather
-    // than holding "Cluster mission" forever, and so re-issuing CLUSTER_STRIKE
-    // on the same tile triggers a fresh strike instead of being deduped.
-    this.bomber.setMission(undefined);
+    // Stand down after strike so the bomber returns home and waits for the
+    // next player order instead of autonomously re-finding targets.
+    this.bomber.setMission(UnitMission.STAND_DOWN);
     this.bomber.setMissionTargetTile(undefined);
     this.phase = "returning";
     this.pathFinder = PathFinding.Air(this.mg);

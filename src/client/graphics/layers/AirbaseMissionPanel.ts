@@ -352,11 +352,14 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     if (!this.game || !this.transformHandler) return;
     if (this._confirmedTargets.size === 0) return;
 
-    // Prune stale entries: units that are gone or no longer on a target mission.
-    const TARGET_MISSIONS = new Set<UnitMission>([
-      UnitMission.STRIKE_TARGET,
-      UnitMission.CLUSTER_STRIKE,
-      UnitMission.ATTACK_TILE,
+    // Prune stale entries: units that are gone, dead, or stood down.
+    // We do NOT prune on non-strike missions because the server may not have
+    // broadcast the STRIKE_TARGET update yet on the frame the confirm fires.
+    // We clear when the plane explicitly returns to STAND_DOWN (post-strike or
+    // player-cancelled) or when a different player-chosen mission takes over.
+    const CLEAR_MISSIONS = new Set<UnitMission | undefined>([
+      UnitMission.STAND_DOWN,
+      UnitMission.INTERCEPT_HOME,
     ]);
     const stale: number[] = [];
     for (const [unitId] of this._confirmedTargets) {
@@ -364,10 +367,9 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
       if (
         !unit ||
         !unit.isActive() ||
-        !TARGET_MISSIONS.has(unit.mission() as UnitMission)
-      ) {
+        CLEAR_MISSIONS.has(unit.mission() as UnitMission)
+      )
         stale.push(unitId);
-      }
     }
     for (const id of stale) this._confirmedTargets.delete(id);
 
