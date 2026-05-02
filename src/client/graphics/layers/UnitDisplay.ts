@@ -162,7 +162,7 @@ export class UnitDisplay extends LitElement implements Layer {
       <div
         class="border-t border-white/10 p-0.5 w-full max-w-full overflow-x-auto"
       >
-        <div class="flex flex-wrap justify-center gap-0.5 w-full">
+        <div class="flex flex-nowrap justify-center gap-0.5 w-full">
           ${this.renderUnitItem(
             cityIcon,
             this._cities,
