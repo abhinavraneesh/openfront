@@ -1192,9 +1192,8 @@ export class PlayerImpl implements Player {
       case UnitType.Fighter:
       case UnitType.TacticalBomber:
       case UnitType.StrategicBomber:
-        return this.aircraftSpawn(targetTile);
       case UnitType.AttackHelicopter:
-        return this.helicopterSpawn(targetTile);
+        return this.aircraftSpawn(targetTile);
       default:
         assertNever(unitType);
     }

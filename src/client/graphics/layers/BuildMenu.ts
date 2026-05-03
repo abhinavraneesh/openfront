@@ -45,7 +45,6 @@ const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
 const fighterIcon = assetUrl("images/FighterIconWhite.svg");
 const tacticalBomberIcon = assetUrl("images/TacticalBomberIconWhite.svg");
 const strategicBomberIcon = assetUrl("images/StrategicBomberIconWhite.svg");
-const attackHelicopterIcon = assetUrl("images/AttackHelicopterIconWhite.svg");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
 const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 const carrierIcon = assetUrl("images/CarrierIconWhite.svg");
@@ -186,13 +185,6 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: strategicBomberIcon,
       description: "build_menu.desc.strategic_bomber",
       key: "unit_type.strategic_bomber",
-      countable: true,
-    },
-    {
-      unitType: UnitType.AttackHelicopter,
-      icon: attackHelicopterIcon,
-      description: "build_menu.desc.attack_helicopter",
-      key: "unit_type.attack_helicopter",
       countable: true,
     },
   ],

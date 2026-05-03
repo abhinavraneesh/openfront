@@ -116,7 +116,7 @@ export class UnitDisplay extends LitElement implements Layer {
       case UnitType.AttackHelicopter:
         return (
           this.cost(item) <= (player?.gold() ?? 0n) &&
-          (player?.units(UnitType.City).length ?? 0) > 0
+          (player?.units(UnitType.Airbase).length ?? 0) > 0
         );
       default:
         return this.cost(item) <= (player?.gold() ?? 0n);
@@ -351,7 +351,9 @@ export class UnitDisplay extends LitElement implements Layer {
                 );
                 break;
               case UnitType.AttackHelicopter:
-                this.eventBus?.emit(new ToggleStructureEvent([UnitType.City]));
+                this.eventBus?.emit(
+                  new ToggleStructureEvent([UnitType.Airbase]),
+                );
                 break;
               default:
                 this.eventBus?.emit(new ToggleStructureEvent([unitType]));
