@@ -512,7 +512,6 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
         return navalYardIcon;
       case UnitType.Airbase:
         return airbaseIcon;
-      case UnitType.FuelDepot:
       case UnitType.Factory:
         return factoryIcon;
       case UnitType.CoastalBattery:

@@ -724,7 +724,6 @@ export class InputHandler {
       { key: "buildMIRV", type: UnitType.MIRV },
       { key: "buildNavalYard", type: UnitType.NavalYard },
       { key: "buildAirbase", type: UnitType.Airbase },
-      { key: "buildFuelDepot", type: UnitType.FuelDepot },
       { key: "buildCoastalBattery", type: UnitType.CoastalBattery },
     ];
     for (const { key, type } of buildKeybinds) {

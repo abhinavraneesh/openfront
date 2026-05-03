@@ -75,10 +75,6 @@ function getStructureRatios(
       ratioPerCity: 0.1,
       perceivedCostIncreasePerOwned: 1,
     },
-    [UnitType.FuelDepot]: {
-      ratioPerCity: 0.1,
-      perceivedCostIncreasePerOwned: 0.5,
-    },
   };
 }
 
@@ -87,7 +83,6 @@ const PHASE_GATING: Partial<Record<UnitType, number>> = {
   [UnitType.NavalYard]: 3,
   [UnitType.CoastalBattery]: 4,
   [UnitType.Airbase]: 5,
-  [UnitType.FuelDepot]: 6,
 };
 
 /** Perceived cost increase percentage per city owned */
@@ -145,7 +140,6 @@ export class NationStructureBehavior {
       UnitType.NavalYard,
       UnitType.CoastalBattery,
       UnitType.Airbase,
-      UnitType.FuelDepot,
     ];
 
     const nukesEnabled =
@@ -566,9 +560,6 @@ export class NationStructureBehavior {
         return this.portValue();
       case UnitType.Airbase:
         // Interior strategic: factory-like placement
-        return this.factoryValue();
-      case UnitType.FuelDepot:
-        // Interior logistics: factory-like placement
         return this.factoryValue();
       default:
         throw new Error(`Value function not implemented for ${type}`);

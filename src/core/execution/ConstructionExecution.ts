@@ -11,7 +11,6 @@ import { DefensePostExecution } from "./DefensePostExecution";
 import { DestroyerExecution } from "./DestroyerExecution";
 import { FactoryExecution } from "./FactoryExecution";
 import { FighterExecution } from "./FighterExecution";
-import { FuelDepotExecution } from "./FuelDepotExecution";
 import { MinelayerExecution } from "./MinelayerExecution";
 import { MirvExecution } from "./MIRVExecution";
 import { MissileSiloExecution } from "./MissileSiloExecution";
@@ -215,9 +214,6 @@ export class ConstructionExecution implements Execution {
       case UnitType.NavalYard:
         this.mg.addExecution(new NavalYardExecution(this.structure!));
         break;
-      case UnitType.FuelDepot:
-        this.mg.addExecution(new FuelDepotExecution(this.structure!));
-        break;
       case UnitType.CoastalBattery:
         this.mg.addExecution(new CoastalBatteryExecution(this.structure!));
         break;
@@ -244,7 +240,6 @@ export class ConstructionExecution implements Execution {
       case UnitType.Factory:
       case UnitType.Airbase:
       case UnitType.NavalYard:
-      case UnitType.FuelDepot:
       case UnitType.CoastalBattery:
         return true;
       default:

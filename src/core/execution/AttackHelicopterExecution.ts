@@ -31,7 +31,6 @@ const ATTACK_TILE_TARGETS = [
   UnitType.Port,
   UnitType.Airbase,
   UnitType.NavalYard,
-  UnitType.FuelDepot,
 ] as const;
 
 // CAS_NATION: troops removed from target nation per attack tick.

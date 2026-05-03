@@ -17,7 +17,6 @@ export function getDefaultKeybinds(isMac: boolean): Record<string, string> {
     buildMIRV: "Digit0",
     buildNavalYard: "KeyN",
     buildAirbase: "KeyI",
-    buildFuelDepot: "KeyF",
     buildCoastalBattery: "KeyL",
     attackRatioDown: "KeyT",
     attackRatioUp: "KeyY",

@@ -1184,7 +1184,6 @@ export class PlayerImpl implements Player {
       case UnitType.City:
       case UnitType.Factory:
       case UnitType.Airbase:
-      case UnitType.FuelDepot:
         return this.landBasedStructureSpawn(targetTile, validTiles);
       case UnitType.NavalYard:
         return this.navalYardSpawn(targetTile, validTiles);

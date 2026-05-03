@@ -118,7 +118,6 @@ const unitOptions: { type: UnitType; translationKey: string }[] = [
     type: UnitType.AttackHelicopter,
     translationKey: "unit_type.attack_helicopter",
   },
-  { type: UnitType.FuelDepot, translationKey: "unit_type.fuel_depot" },
   { type: UnitType.TransportShip, translationKey: "unit_type.boat" },
   { type: UnitType.MissileSilo, translationKey: "unit_type.missile_silo" },
   { type: UnitType.SAMLauncher, translationKey: "unit_type.sam_launcher" },

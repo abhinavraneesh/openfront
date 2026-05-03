@@ -14,7 +14,6 @@ const CLUSTER_DAMAGEABLE = [
   UnitType.Airbase,
   UnitType.NavalYard,
   UnitType.CoastalBattery,
-  UnitType.FuelDepot,
   UnitType.DefensePost,
   UnitType.Warship,
   UnitType.Destroyer,

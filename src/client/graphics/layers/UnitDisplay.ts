@@ -30,7 +30,6 @@ const samLauncherIcon = assetUrl("images/SamLauncherIconWhite.svg");
 const defensePostIcon = assetUrl("images/ShieldIconWhite.svg");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
 const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
-const fuelDepotIcon = assetUrl("images/FuelDepotIconWhite.svg");
 const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 
 @customElement("unit-display")
@@ -48,7 +47,6 @@ export class UnitDisplay extends LitElement implements Layer {
   private _samLauncher = 0;
   private _navalYard = 0;
   private _airbase = 0;
-  private _fuelDepot = 0;
   private _coastalBattery = 0;
   private allDisabled = false;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
@@ -139,7 +137,6 @@ export class UnitDisplay extends LitElement implements Layer {
     this._factories = player.totalUnitLevels(UnitType.Factory);
     this._navalYard = player.totalUnitLevels(UnitType.NavalYard);
     this._airbase = player.totalUnitLevels(UnitType.Airbase);
-    this._fuelDepot = player.totalUnitLevels(UnitType.FuelDepot);
     this._coastalBattery = player.totalUnitLevels(UnitType.CoastalBattery);
     this.requestUpdate();
   }
@@ -218,13 +215,6 @@ export class UnitDisplay extends LitElement implements Layer {
             UnitType.Airbase,
             "airbase",
             this.keybinds["buildAirbase"]?.key ?? "I",
-          )}
-          ${this.renderUnitItem(
-            fuelDepotIcon,
-            this._fuelDepot,
-            UnitType.FuelDepot,
-            "fuel_depot",
-            this.keybinds["buildFuelDepot"]?.key ?? "F",
           )}
           ${this.renderUnitItem(
             coastalBatteryIcon,

@@ -608,13 +608,6 @@ export class DefaultConfig implements Config {
           constructionDuration: this.instantBuild() ? 0 : 800,
         };
         break;
-      case UnitType.FuelDepot:
-        info = {
-          cost: this.costWrapper(() => 200_000, UnitType.FuelDepot),
-          maxHealth: 600,
-          constructionDuration: this.instantBuild() ? 0 : 150,
-        };
-        break;
       case UnitType.CoastalBattery:
         info = {
           cost: this.costWrapper(() => 400_000, UnitType.CoastalBattery),
@@ -1238,7 +1231,6 @@ export class DefaultConfig implements Config {
       UnitType.Airbase,
       UnitType.NavalYard,
       UnitType.CoastalBattery,
-      UnitType.FuelDepot,
       UnitType.DefensePost,
     ]);
 

@@ -29,7 +29,6 @@ const BOMBARD_TARGET_TYPES: UnitType[] = [
   UnitType.DefensePost,
   UnitType.Factory,
   UnitType.Airbase,
-  UnitType.FuelDepot,
   UnitType.CoastalBattery,
   UnitType.NavalYard,
   UnitType.Destroyer,

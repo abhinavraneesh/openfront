@@ -16,7 +16,6 @@ const SAMMissileIcon = assetUrl("images/SamLauncherUnit.png");
 const shieldIcon = assetUrl("images/ShieldIcon.png");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
 const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
-const fuelDepotIcon = assetUrl("images/FuelDepotIconWhite.svg");
 const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 
 export const STRUCTURE_SHAPES: Partial<Record<UnitType, ShapeType>> = {
@@ -38,7 +37,6 @@ export const STRUCTURE_SHAPES: Partial<Record<UnitType, ShapeType>> = {
   [UnitType.StrategicBomber]: "cross",
   [UnitType.AttackHelicopter]: "cross",
   [UnitType.NavalYard]: "pentagon",
-  [UnitType.FuelDepot]: "square",
   [UnitType.CoastalBattery]: "triangle",
   [UnitType.Carrier]: "cross",
   [UnitType.Mine]: "octagon",
@@ -88,7 +86,6 @@ export class SpriteFactory {
     [UnitType.SAMLauncher, { iconPath: SAMMissileIcon, image: null }],
     [UnitType.NavalYard, { iconPath: navalYardIcon, image: null }],
     [UnitType.Airbase, { iconPath: airbaseIcon, image: null }],
-    [UnitType.FuelDepot, { iconPath: fuelDepotIcon, image: null }],
     [UnitType.CoastalBattery, { iconPath: coastalBatteryIcon, image: null }],
   ]);
   constructor(

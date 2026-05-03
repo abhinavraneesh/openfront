@@ -38,7 +38,6 @@ const STRIKE_TARGETS = [
   UnitType.Airbase,
   UnitType.NavalYard,
   UnitType.CoastalBattery,
-  UnitType.FuelDepot,
   UnitType.DefensePost,
 ] as const;
 
@@ -132,7 +131,6 @@ export class TacticalBomberExecution implements Execution {
         this.bomber.delete();
         return;
       }
-      this.checkFuelDepotRefuel();
       this.doReturn(moveSpeed);
       return;
     }
@@ -174,7 +172,6 @@ export class TacticalBomberExecution implements Execution {
           this.bomber.delete();
           return;
         }
-        this.checkFuelDepotRefuel();
         this.doOutbound(moveSpeed, info.damage ?? 600);
         break;
       case "attacking":
@@ -186,7 +183,6 @@ export class TacticalBomberExecution implements Execution {
           this.bomber.delete();
           return;
         }
-        this.checkFuelDepotRefuel();
         this.doReturn(moveSpeed);
         break;
       case "idle":
@@ -264,23 +260,6 @@ export class TacticalBomberExecution implements Execution {
       }
     }
     return best;
-  }
-
-  private checkFuelDepotRefuel(): void {
-    const owner = this.bomber.owner();
-    const nearby = this.mg.nearbyUnits(this.bomber.tile(), 5, [
-      UnitType.FuelDepot,
-    ]);
-    for (const { unit } of nearby) {
-      if (
-        unit.owner() === owner &&
-        unit.isActive() &&
-        !unit.isUnderConstruction()
-      ) {
-        this.fuel = Math.min(this.fuel + 20, this.maxFuel * this.homeBaseLevel);
-        break;
-      }
-    }
   }
 
   private doFinding(range: number): void {

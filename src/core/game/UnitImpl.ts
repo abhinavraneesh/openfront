@@ -87,7 +87,6 @@ export class UnitImpl implements Unit {
       case UnitType.StrategicBomber:
       case UnitType.AttackHelicopter:
       case UnitType.NavalYard:
-      case UnitType.FuelDepot:
       case UnitType.CoastalBattery:
       case UnitType.Carrier:
       case UnitType.Port:
@@ -263,7 +262,6 @@ export class UnitImpl implements Unit {
       case UnitType.StrategicBomber:
       case UnitType.AttackHelicopter:
       case UnitType.NavalYard:
-      case UnitType.FuelDepot:
       case UnitType.CoastalBattery:
       case UnitType.Carrier:
       case UnitType.Port:
@@ -377,7 +375,6 @@ export class UnitImpl implements Unit {
         case UnitType.StrategicBomber:
         case UnitType.AttackHelicopter:
         case UnitType.NavalYard:
-        case UnitType.FuelDepot:
         case UnitType.CoastalBattery:
         case UnitType.Carrier:
         case UnitType.Factory:

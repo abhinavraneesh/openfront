@@ -118,7 +118,6 @@ export class FighterExecution implements Execution {
         this.fighter.delete();
         return;
       }
-      this.checkFuelDepotRefuel();
       this.doReturn(moveSpeed);
       return;
     }
@@ -129,8 +128,6 @@ export class FighterExecution implements Execution {
       this.fighter.delete();
       return;
     }
-    this.checkFuelDepotRefuel();
-
     switch (this.phase) {
       case "patrol":
         this.doPatrol(
@@ -211,23 +208,6 @@ export class FighterExecution implements Execution {
       }
     }
     return best;
-  }
-
-  private checkFuelDepotRefuel(): void {
-    const owner = this.fighter.owner();
-    const nearby = this.mg.nearbyUnits(this.fighter.tile(), 5, [
-      UnitType.FuelDepot,
-    ]);
-    for (const { unit } of nearby) {
-      if (
-        unit.owner() === owner &&
-        unit.isActive() &&
-        !unit.isUnderConstruction()
-      ) {
-        this.fuel = Math.min(this.fuel + 20, this.maxFuel * this.homeBaseLevel);
-        break;
-      }
-    }
   }
 
   private distToHome(): number {

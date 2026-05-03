@@ -140,7 +140,6 @@ export class StrategicBomberExecution implements Execution {
         this.bomber.delete();
         return;
       }
-      this.checkFuelDepotRefuel();
       this.doReturn(moveSpeed);
       return;
     }
@@ -169,7 +168,6 @@ export class StrategicBomberExecution implements Execution {
           this.bomber.delete();
           return;
         }
-        this.checkFuelDepotRefuel();
         this.doOutbound(moveSpeed, info.damage ?? 1500);
         break;
       case "attacking":
@@ -181,7 +179,6 @@ export class StrategicBomberExecution implements Execution {
           this.bomber.delete();
           return;
         }
-        this.checkFuelDepotRefuel();
         this.doReturn(moveSpeed);
         break;
       case "idle":
@@ -259,23 +256,6 @@ export class StrategicBomberExecution implements Execution {
       }
     }
     return best;
-  }
-
-  private checkFuelDepotRefuel(): void {
-    const owner = this.bomber.owner();
-    const nearby = this.mg.nearbyUnits(this.bomber.tile(), 5, [
-      UnitType.FuelDepot,
-    ]);
-    for (const { unit } of nearby) {
-      if (
-        unit.owner() === owner &&
-        unit.isActive() &&
-        !unit.isUnderConstruction()
-      ) {
-        this.fuel = Math.min(this.fuel + 20, this.maxFuel * this.homeBaseLevel);
-        break;
-      }
-    }
   }
 
   private doFinding(range: number): void {

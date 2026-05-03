@@ -47,7 +47,6 @@ const tacticalBomberIcon = assetUrl("images/TacticalBomberIconWhite.svg");
 const strategicBomberIcon = assetUrl("images/StrategicBomberIconWhite.svg");
 const attackHelicopterIcon = assetUrl("images/AttackHelicopterIconWhite.svg");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
-const fuelDepotIcon = assetUrl("images/FuelDepotIconWhite.svg");
 const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 const carrierIcon = assetUrl("images/CarrierIconWhite.svg");
 
@@ -101,13 +100,6 @@ export const buildTable: BuildItemDisplay[][] = [
       icon: airbaseIcon,
       description: "build_menu.desc.airbase",
       key: "unit_type.airbase",
-      countable: true,
-    },
-    {
-      unitType: UnitType.FuelDepot,
-      icon: fuelDepotIcon,
-      description: "build_menu.desc.fuel_depot",
-      key: "unit_type.fuel_depot",
       countable: true,
     },
     {

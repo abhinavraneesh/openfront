@@ -70,7 +70,6 @@ export type OtherUnitType =
   | UnitType.StrategicBomber
   | UnitType.AttackHelicopter
   | UnitType.NavalYard
-  | UnitType.FuelDepot
   | UnitType.CoastalBattery
   | UnitType.Carrier
   | UnitType.Factory;
@@ -93,7 +92,6 @@ export const unitTypeToOtherUnit = {
   [UnitType.StrategicBomber]: "sbmb",
   [UnitType.AttackHelicopter]: "heli",
   [UnitType.NavalYard]: "nyrd",
-  [UnitType.FuelDepot]: "fdpt",
   [UnitType.CoastalBattery]: "cbat",
   [UnitType.Carrier]: "crrr",
   [UnitType.Factory]: "fact",

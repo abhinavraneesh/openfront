@@ -333,7 +333,6 @@ export enum UnitType {
   AttackHelicopter = "Attack Helicopter",
   // Phase 3 advanced units
   NavalYard = "Naval Yard",
-  FuelDepot = "Fuel Depot",
   CoastalBattery = "Coastal Battery",
   Carrier = "Carrier",
   // Phase 4 internal units (not player-buildable)
@@ -402,7 +401,6 @@ export const Structures = unitTypeGroup([
   UnitType.Factory,
   UnitType.Airbase,
   UnitType.NavalYard,
-  UnitType.FuelDepot,
   UnitType.CoastalBattery,
 ] as const);
 
@@ -524,7 +522,6 @@ export interface UnitParamsMap {
 
   // Phase 3 structures
   [UnitType.NavalYard]: Record<string, never>;
-  [UnitType.FuelDepot]: Record<string, never>;
   [UnitType.CoastalBattery]: Record<string, never>;
 
   // Carrier acts as floating Airbase; patrolTile stores its patrol center
