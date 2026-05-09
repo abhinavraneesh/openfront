@@ -33,6 +33,8 @@ enum Relationship {
 const SPRITE_WORLD_SIZE = 16;
 // Plate radius in world-units — just enough to peek out from under the sprite
 const SPRITE_PLATE_RADIUS = 10;
+// Draw size for aircraft — no plate, just a small sprite
+const AIRCRAFT_DRAW_SIZE = 8;
 
 const SPRITE_BASE_PLATE_TYPES = new Set([
   UnitType.Destroyer,
@@ -41,6 +43,9 @@ const SPRITE_BASE_PLATE_TYPES = new Set([
   UnitType.Submarine,
   UnitType.Minelayer,
   UnitType.Carrier,
+]);
+
+const AIRCRAFT_TYPES = new Set([
   UnitType.Fighter,
   UnitType.TacticalBomber,
   UnitType.StrategicBomber,
@@ -62,6 +67,9 @@ export class UnitLayer implements Layer {
   private oldShellTile = new Map<UnitView, TileRef>();
 
   private transformHandler: TransformHandler;
+
+  // Smoothed facing angles for aircraft (radians)
+  private unitAngles = new Map<number, number>();
 
   // Selected unit property as suggested in the review comment
   private selectedUnit: UnitView | null = null;
@@ -241,6 +249,7 @@ export class UnitLayer implements Layer {
     if (this.selectedUnit === unit && !unit.isActive()) {
       this.eventBus.emit(new UnitSelectionEvent(unit, false));
     }
+    this.unitAngles.delete(unit.id());
   }
 
   renderLayer(context: CanvasRenderingContext2D) {
@@ -336,6 +345,9 @@ export class UnitLayer implements Layer {
   private unitDrawHalfSize(unit: UnitView): number {
     if (SPRITE_BASE_PLATE_TYPES.has(unit.type())) {
       return Math.max(SPRITE_PLATE_RADIUS, SPRITE_WORLD_SIZE / 2) + 1;
+    }
+    if (AIRCRAFT_TYPES.has(unit.type())) {
+      return AIRCRAFT_DRAW_SIZE / 2 + 1;
     }
     if (!isSpriteReady(unit)) return 8;
     const sprite = getColoredSprite(unit, this.theme);
@@ -727,7 +739,12 @@ export class UnitLayer implements Layer {
         this.context.globalAlpha = 0.5;
       }
       const isNewSprite = SPRITE_BASE_PLATE_TYPES.has(unit.type());
-      const drawSize = isNewSprite ? SPRITE_WORLD_SIZE : sprite.width;
+      const isAircraft = AIRCRAFT_TYPES.has(unit.type());
+      const drawSize = isNewSprite
+        ? SPRITE_WORLD_SIZE
+        : isAircraft
+          ? AIRCRAFT_DRAW_SIZE
+          : sprite.width;
       if (isNewSprite) {
         const plateColor = alternateViewColor ?? unit.owner().territoryColor();
         this.context.save();
@@ -737,13 +754,41 @@ export class UnitLayer implements Layer {
         this.context.fill();
         this.context.restore();
       }
-      this.context.drawImage(
-        sprite,
-        Math.round(x - drawSize / 2),
-        Math.round(y - drawSize / 2),
-        drawSize,
-        drawSize,
-      );
+      if (isAircraft) {
+        // Update smoothed facing angle from movement delta
+        const lx = this.game.x(unit.lastTile());
+        const ly = this.game.y(unit.lastTile());
+        if (lx !== x || ly !== y) {
+          const target = Math.atan2(y - ly, x - lx);
+          const cur = this.unitAngles.get(unit.id()) ?? target;
+          let diff = target - cur;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          this.unitAngles.set(unit.id(), cur + diff * 0.25);
+        }
+        const angle = this.unitAngles.get(unit.id()) ?? 0;
+        this.context.save();
+        this.context.imageSmoothingEnabled = true;
+        this.context.imageSmoothingQuality = "high";
+        this.context.translate(x, y);
+        this.context.rotate(angle);
+        this.context.drawImage(
+          sprite,
+          -drawSize / 2,
+          -drawSize / 2,
+          drawSize,
+          drawSize,
+        );
+        this.context.restore();
+      } else {
+        this.context.drawImage(
+          sprite,
+          Math.round(x - drawSize / 2),
+          Math.round(y - drawSize / 2),
+          drawSize,
+          drawSize,
+        );
+      }
       if (!targetable) {
         this.context.restore();
       }
@@ -768,13 +813,15 @@ export class UnitLayer implements Layer {
         }
       }
 
-      // Homeless indicator — small red X on map sprite when no home port.
+      // Homeless indicator — small red X on map sprite when no home base.
       if (
-        SPRITE_BASE_PLATE_TYPES.has(unit.type()) &&
+        (SPRITE_BASE_PLATE_TYPES.has(unit.type()) ||
+          AIRCRAFT_TYPES.has(unit.type())) &&
         unit.owner() === this.game.myPlayer() &&
         unit.patrolTile() === undefined
       ) {
-        const half = SPRITE_WORLD_SIZE * 0.28;
+        const baseSize = isAircraft ? AIRCRAFT_DRAW_SIZE : SPRITE_WORLD_SIZE;
+        const half = baseSize * 0.28;
         this.context.save();
         this.context.strokeStyle = "rgba(239,68,68,0.85)";
         this.context.lineWidth = 1.2;

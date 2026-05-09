@@ -50,6 +50,9 @@ export class UnitDisplay extends LitElement implements Layer {
   private _coastalBattery = 0;
   private allDisabled = false;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
+  private _hoverPos: { x: number; y: number } | null = null;
+  private _hoverStructureKey = "";
+  private _hoverDisplayHotkey = "";
 
   createRenderRoot() {
     return this;
@@ -155,7 +158,30 @@ export class UnitDisplay extends LitElement implements Layer {
       return null;
     }
 
+    const hovered = this._hoveredUnit;
+    const hoverPos = this._hoverPos;
     return html`
+      ${hovered && hoverPos
+        ? html`<div
+            class="fixed z-[200] pointer-events-none text-gray-200 text-center w-max text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 shadow-lg"
+            style="left:${hoverPos.x}px;top:${hoverPos.y}px;transform:translate(-50%,-100%) translateY(-6px)"
+          >
+            <div class="font-bold text-sm mb-1">
+              ${translateText(
+                "unit_type." + this._hoverStructureKey,
+              )}${` [${this._hoverDisplayHotkey}]`}
+            </div>
+            <div class="p-2">
+              ${translateText("build_menu.desc." + this._hoverStructureKey)}
+            </div>
+            <div class="flex items-center justify-center gap-1">
+              <img src=${goldCoinIcon} width="13" height="13" />
+              <span class="text-yellow-300"
+                >${renderNumber(this.cost(hovered))}</span
+              >
+            </div>
+          </div>`
+        : null}
       <div
         class="border-t border-white/10 p-0.5 w-full max-w-full overflow-x-auto"
       >
@@ -260,7 +286,6 @@ export class UnitDisplay extends LitElement implements Layer {
       return html``;
     }
     const selected = this.uiState.ghostStructure === unitType;
-    const hovered = this._hoveredUnit === unitType;
     const displayHotkey = hotkey
       .replace("Digit", "")
       .replace("Key", "")
@@ -269,37 +294,20 @@ export class UnitDisplay extends LitElement implements Layer {
     return html`
       <div
         class="flex flex-col items-center relative"
-        @mouseenter=${() => {
+        @mouseenter=${(e: MouseEvent) => {
           this._hoveredUnit = unitType;
+          this._hoverStructureKey = structureKey;
+          this._hoverDisplayHotkey = displayHotkey;
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          this._hoverPos = { x: rect.left + rect.width / 2, y: rect.top };
           this.requestUpdate();
         }}
         @mouseleave=${() => {
           this._hoveredUnit = null;
+          this._hoverPos = null;
           this.requestUpdate();
         }}
       >
-        ${hovered
-          ? html`
-              <div
-                class="absolute -top-[250%] left-1/2 -translate-x-1/2 text-gray-200 text-center w-max text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 z-[100] shadow-lg pointer-events-none"
-              >
-                <div class="font-bold text-sm mb-1">
-                  ${translateText(
-                    "unit_type." + structureKey,
-                  )}${` [${displayHotkey}]`}
-                </div>
-                <div class="p-2">
-                  ${translateText("build_menu.desc." + structureKey)}
-                </div>
-                <div class="flex items-center justify-center gap-1">
-                  <img src=${goldCoinIcon} width="13" height="13" />
-                  <span class="text-yellow-300"
-                    >${renderNumber(this.cost(unitType))}</span
-                  >
-                </div>
-              </div>
-            `
-          : null}
         <div
           class="${this.canBuild(unitType)
             ? ""
