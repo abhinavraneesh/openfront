@@ -50,7 +50,6 @@ export class UnitDisplay extends LitElement implements Layer {
   private _coastalBattery = 0;
   private allDisabled = false;
   private _hoveredUnit: PlayerBuildableUnitType | null = null;
-  private _hoverPos: { x: number; y: number } | null = null;
   private _hoverStructureKey = "";
   private _hoverDisplayHotkey = "";
 
@@ -158,33 +157,39 @@ export class UnitDisplay extends LitElement implements Layer {
     }
 
     const hovered = this._hoveredUnit;
-    const hoverPos = this._hoverPos;
     return html`
-      ${hovered && hoverPos
-        ? html`<div
-            class="fixed z-[200] pointer-events-none text-gray-200 text-center w-max text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-1 shadow-lg"
-            style="left:${hoverPos.x}px;top:${hoverPos.y}px;transform:translate(-50%,-100%) translateY(-6px)"
-          >
-            <div class="font-bold text-sm mb-1">
-              ${translateText(
-                "unit_type." + this._hoverStructureKey,
-              )}${` [${this._hoverDisplayHotkey}]`}
-            </div>
-            <div class="p-2">
-              ${translateText("build_menu.desc." + this._hoverStructureKey)}
-            </div>
-            <div class="flex items-center justify-center gap-1">
-              <img src=${goldCoinIcon} width="13" height="13" />
-              <span class="text-yellow-300"
-                >${renderNumber(this.cost(hovered))}</span
-              >
-            </div>
-          </div>`
-        : null}
-      <div
-        class="border-t border-white/10 p-0.5 w-full max-w-full overflow-x-auto"
-      >
-        <div class="flex flex-nowrap justify-center gap-0.5 w-full">
+      <div class="border-t border-white/10 w-full">
+        <div
+          class="flex items-center justify-center gap-3 px-4 py-1 min-h-[42px] text-center"
+        >
+          ${hovered
+            ? html`
+                <div class="text-gray-200 text-xs leading-tight">
+                  <span class="font-semibold text-white text-sm"
+                    >${translateText(
+                      "unit_type." + this._hoverStructureKey,
+                    )}</span
+                  >
+                  <span class="text-gray-500 text-xs ml-1"
+                    >[${this._hoverDisplayHotkey}]</span
+                  >
+                  <span class="text-gray-400 mx-2">·</span>
+                  <span class="text-gray-300"
+                    >${translateText(
+                      "build_menu.desc." + this._hoverStructureKey,
+                    )}</span
+                  >
+                  <span class="inline-flex items-center gap-1 ml-2">
+                    <img src=${goldCoinIcon} width="12" height="12" />
+                    <span class="text-yellow-300 font-semibold"
+                      >${renderNumber(this.cost(hovered))}</span
+                    >
+                  </span>
+                </div>
+              `
+            : null}
+        </div>
+        <div class="flex flex-nowrap justify-center gap-2 px-3 pb-1.5 overflow-x-auto">
           ${this.renderUnitItem(
             cityIcon,
             this._cities,
@@ -275,6 +280,7 @@ export class UnitDisplay extends LitElement implements Layer {
   }
 
   private renderUnitItem(
+
     icon: string,
     number: number | null,
     unitType: PlayerBuildableUnitType,
@@ -293,26 +299,23 @@ export class UnitDisplay extends LitElement implements Layer {
     return html`
       <div
         class="flex flex-col items-center relative"
-        @mouseenter=${(e: MouseEvent) => {
+        @mouseenter=${() => {
           this._hoveredUnit = unitType;
           this._hoverStructureKey = structureKey;
           this._hoverDisplayHotkey = displayHotkey;
-          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          this._hoverPos = { x: rect.left + rect.width / 2, y: rect.top };
           this.requestUpdate();
         }}
         @mouseleave=${() => {
           this._hoveredUnit = null;
-          this._hoverPos = null;
           this.requestUpdate();
         }}
       >
         <div
           class="${this.canBuild(unitType)
             ? ""
-            : "opacity-40"} border border-slate-500 rounded-sm px-0.5 pb-0.5 flex items-center gap-0.5 cursor-pointer
+            : "opacity-40"} border border-slate-500 rounded px-2 py-1 flex items-center gap-1 cursor-pointer
              ${selected ? "hover:bg-gray-400/10" : "hover:bg-gray-800"}
-             rounded-sm text-white ${selected ? "bg-slate-400/20" : ""}"
+             text-white ${selected ? "bg-slate-400/20" : ""}"
           @click=${() => {
             if (selected) {
               this.uiState.ghostStructure = null;
@@ -368,14 +371,18 @@ export class UnitDisplay extends LitElement implements Layer {
           @mouseleave=${() =>
             this.eventBus?.emit(new ToggleStructureEvent(null))}
         >
-          ${html`<div class="ml-0.5 text-[10px] relative -top-1 text-gray-400">
-            ${displayHotkey}
-          </div>`}
-          <div class="flex items-center gap-0.5 pt-0.5">
-            <img src=${icon} alt=${structureKey} class="align-middle size-5" />
-            ${number !== null
-              ? html`<span class="text-xs">${renderNumber(number)}</span>`
-              : null}
+          <div class="flex flex-col items-center gap-0.5">
+            <div class="text-[10px] text-gray-400 leading-none">
+              ${displayHotkey}
+            </div>
+            <div class="flex items-center gap-1">
+              <img src=${icon} alt=${structureKey} class="align-middle size-6" />
+              ${number !== null
+                ? html`<span class="text-sm font-medium"
+                    >${renderNumber(number)}</span
+                  >`
+                : null}
+            </div>
           </div>
         </div>
       </div>
