@@ -328,8 +328,7 @@ export enum UnitType {
   // Air units (Phase 2)
   Airbase = "Airbase",
   Fighter = "Fighter",
-  TacticalBomber = "Tactical Bomber",
-  StrategicBomber = "Strategic Bomber",
+  Bomber = "Bomber",
   AttackHelicopter = "Attack Helicopter",
   // Phase 3 advanced units
   NavalYard = "Naval Yard",
@@ -350,10 +349,8 @@ export enum UnitMission {
   INTERCEPT_HOME = "intercept_home", // Fighter: auto-scramble from home base
   INTERCEPT_PATROL = "intercept_patrol", // Fighter: patrol a specific tile
   STAND_DOWN = "stand_down", // Any: stay docked, do nothing
-  STRIKE_TARGET = "strike_target", // TacBomber: precision strike missionTargetTile
-  CLUSTER_STRIKE = "cluster_strike", // StratBomber: cluster bomb missionTargetTile
+  STRIKE_TARGET = "strike_target", // Bomber: precision strike missionTargetTile
   CAS_NATION = "cas_nation", // AttackHeli: hunt troops of missionTargetUnitId (player smallID)
-  ATTACK_TILE = "attack_tile", // AttackHeli: attack specific tile
   // Ship missions
   AUTO = "auto", // Ships: default autonomous patrol (current behavior)
   MOVE_TO_TILE = "move_to_tile", // Ships: pathfind to tile then HOLD_POSITION
@@ -386,8 +383,7 @@ export const BuildableAttacks = unitTypeGroup([
   UnitType.Submarine,
   UnitType.Minelayer,
   UnitType.Fighter,
-  UnitType.TacticalBomber,
-  UnitType.StrategicBomber,
+  UnitType.Bomber,
   UnitType.AttackHelicopter,
   UnitType.Carrier,
 ] as const);
@@ -508,11 +504,7 @@ export interface UnitParamsMap {
     patrolTile: TileRef;
   };
 
-  [UnitType.TacticalBomber]: {
-    patrolTile: TileRef;
-  };
-
-  [UnitType.StrategicBomber]: {
+  [UnitType.Bomber]: {
     patrolTile: TileRef;
   };
 

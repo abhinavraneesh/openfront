@@ -107,12 +107,8 @@ const unitOptions: { type: UnitType; translationKey: string }[] = [
   { type: UnitType.Airbase, translationKey: "unit_type.airbase" },
   { type: UnitType.Fighter, translationKey: "unit_type.fighter" },
   {
-    type: UnitType.TacticalBomber,
-    translationKey: "unit_type.tactical_bomber",
-  },
-  {
-    type: UnitType.StrategicBomber,
-    translationKey: "unit_type.strategic_bomber",
+    type: UnitType.Bomber,
+    translationKey: "unit_type.bomber",
   },
   {
     type: UnitType.AttackHelicopter,

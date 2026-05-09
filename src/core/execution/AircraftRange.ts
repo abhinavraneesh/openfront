@@ -25,8 +25,7 @@ export function carrierDockedCount(carrier: Unit): number {
   let count = 0;
   for (const type of [
     UnitType.Fighter,
-    UnitType.TacticalBomber,
-    UnitType.StrategicBomber,
+    UnitType.Bomber,
     UnitType.AttackHelicopter,
   ] as const) {
     for (const u of owner.units(type)) {

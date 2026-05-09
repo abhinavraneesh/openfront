@@ -3,6 +3,7 @@ import { TileRef } from "../game/GameMap";
 import { AirbaseExecution } from "./AirbaseExecution";
 import { AttackHelicopterExecution } from "./AttackHelicopterExecution";
 import { BattleshipExecution } from "./BattleshipExecution";
+import { BomberExecution } from "./BomberExecution";
 import { CarrierExecution } from "./CarrierExecution";
 import { CityExecution } from "./CityExecution";
 import { CoastalBatteryExecution } from "./CoastalBatteryExecution";
@@ -18,9 +19,7 @@ import { NavalYardExecution } from "./NavalYardExecution";
 import { NukeExecution } from "./NukeExecution";
 import { PortExecution } from "./PortExecution";
 import { SAMLauncherExecution } from "./SAMLauncherExecution";
-import { StrategicBomberExecution } from "./StrategicBomberExecution";
 import { SubmarineExecution } from "./SubmarineExecution";
-import { TacticalBomberExecution } from "./TacticalBomberExecution";
 import { WarshipExecution } from "./WarshipExecution";
 
 export class ConstructionExecution implements Execution {
@@ -190,17 +189,9 @@ export class ConstructionExecution implements Execution {
           new FighterExecution({ owner: player, patrolTile: this.tile }),
         );
         break;
-      case UnitType.TacticalBomber:
+      case UnitType.Bomber:
         this.mg.addExecution(
-          new TacticalBomberExecution({ owner: player, patrolTile: this.tile }),
-        );
-        break;
-      case UnitType.StrategicBomber:
-        this.mg.addExecution(
-          new StrategicBomberExecution({
-            owner: player,
-            patrolTile: this.tile,
-          }),
+          new BomberExecution({ owner: player, patrolTile: this.tile }),
         );
         break;
       case UnitType.AttackHelicopter:

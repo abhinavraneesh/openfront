@@ -86,6 +86,13 @@ Ernie Wright (USRA) ORCID logo.
 Scientist
 Noah Petro (NASA/GSFC) ORCID logo.
 
+## Sprites
+
+### Terratomic
+
+Bomber and Fighter sprites (`resources/sprites/bomber.png`, `resources/sprites/fighter.png`) adapted from [Terratomic](https://github.com/1brucben/Terratomic) by 1brucben.  
+Licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)
+
 ## Icons
 
 ### [The Noun Project](https://thenounproject.com/)

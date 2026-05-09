@@ -567,27 +567,14 @@ export class DefaultConfig implements Config {
           constructionDuration: this.instantBuild() ? 0 : 100,
         };
         break;
-      case UnitType.TacticalBomber:
+      case UnitType.Bomber:
         info = {
-          cost: this.costWrapper(() => 2_000_000, UnitType.TacticalBomber),
-          maxHealth: 400,
-          damage: 600,
+          cost: this.costWrapper(() => 2_000_000, UnitType.Bomber),
+          maxHealth: 450,
+          damage: 800,
           range: 80,
-          moveSpeed: 2,
-          maxFuel: 100,
-          constructionDuration: this.instantBuild() ? 0 : 180,
-        };
-        break;
-      case UnitType.StrategicBomber:
-        info = {
-          cost: this.costWrapper(() => 4_000_000, UnitType.StrategicBomber),
-          maxHealth: 500,
-          damage: 1500,
-          attackRate: 0,
-          range: 120,
-          moveSpeed: 1,
-          maxFuel: 200,
-          constructionDuration: this.instantBuild() ? 0 : 300,
+          moveSpeed: 3,
+          constructionDuration: this.instantBuild() ? 0 : 200,
         };
         break;
       case UnitType.AttackHelicopter:
@@ -1218,8 +1205,7 @@ export class DefaultConfig implements Config {
     ]);
     const airUnits = new Set([
       UnitType.Fighter,
-      UnitType.TacticalBomber,
-      UnitType.StrategicBomber,
+      UnitType.Bomber,
       UnitType.AttackHelicopter,
     ]);
     const buildings = new Set([
@@ -1240,16 +1226,11 @@ export class DefaultConfig implements Config {
       return 0.0; // cannot damage ground or naval
     }
 
-    // --- Tactical Bomber: precision strikes on buildings and ships ---
-    if (attacker === UnitType.TacticalBomber) {
+    // --- Bomber: precision strikes on buildings and ships ---
+    if (attacker === UnitType.Bomber) {
       if (buildings.has(defender)) return 3.0;
       if (navalShips.has(defender)) return 2.5;
-      return 0.0; // no damage vs troops
-    }
-
-    // --- Strategic Bomber: area bombardment ---
-    if (attacker === UnitType.StrategicBomber) {
-      return 1.5;
+      return 0.0;
     }
 
     // --- Attack Helicopter ---

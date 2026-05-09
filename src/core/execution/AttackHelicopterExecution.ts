@@ -20,19 +20,6 @@ import { CASUtils } from "./CASUtils";
 const HELI_TARGETS = [UnitType.DefensePost, UnitType.SAMLauncher] as const;
 const HELI_PATROL_RANGE = 40;
 
-// Targets the ATTACK_TILE mission can engage near the chosen tile.
-const ATTACK_TILE_TARGETS = [
-  UnitType.DefensePost,
-  UnitType.SAMLauncher,
-  UnitType.MissileSilo,
-  UnitType.CoastalBattery,
-  UnitType.Factory,
-  UnitType.City,
-  UnitType.Port,
-  UnitType.Airbase,
-  UnitType.NavalYard,
-] as const;
-
 // CAS_NATION: troops removed from target nation per attack tick.
 const CAS_TROOP_DAMAGE = 3000;
 // How often (ticks) to re-sample the shared border anchor tile.
@@ -112,20 +99,6 @@ export class AttackHelicopterExecution implements Execution {
       return;
     }
 
-    // ATTACK_TILE: fly to commanded tile and engage anything there.
-    if (mission === UnitMission.ATTACK_TILE) {
-      const tile = this.heli.missionTargetTile();
-      if (tile !== undefined) {
-        const target = this.findTargetNearTile(tile, 6);
-        if (target) {
-          this.engageTarget(target, moveSpeed, attackRate, damage);
-        } else {
-          this.moveToward(tile, moveSpeed);
-        }
-        return;
-      }
-    }
-
     // CAS_NATION: patrol the shared border, destroy DefensePosts, drain troops.
     if (mission === UnitMission.CAS_NATION) {
       const nationId = this.heli.missionTargetUnitId();
@@ -166,24 +139,6 @@ export class AttackHelicopterExecution implements Execution {
         .combatMultiplier(UnitType.AttackHelicopter, target.type());
       target.modifyHealth(-Math.round(damage * multiplier), this.heli.owner());
     }
-  }
-
-  private findTargetNearTile(tile: TileRef, range: number): Unit | undefined {
-    const owner = this.heli.owner();
-    const nearby = this.mg.nearbyUnits(tile, range, ATTACK_TILE_TARGETS);
-    let best: Unit | undefined;
-    let bestDist = Infinity;
-    for (const { unit, distSquared } of nearby) {
-      if (
-        unit.owner() !== owner &&
-        owner.canAttackPlayer(unit.owner(), true) &&
-        distSquared < bestDist
-      ) {
-        best = unit;
-        bestDist = distSquared;
-      }
-    }
-    return best;
   }
 
   private doCASNation(

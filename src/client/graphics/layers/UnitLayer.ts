@@ -42,9 +42,24 @@ const SPRITE_BASE_PLATE_TYPES = new Set([
   UnitType.Minelayer,
   UnitType.Carrier,
   UnitType.Fighter,
-  UnitType.TacticalBomber,
-  UnitType.StrategicBomber,
+  UnitType.Bomber,
   UnitType.AttackHelicopter,
+]);
+
+// Units rendered per-frame with interpolation instead of on the static canvas
+const FLUID_TYPES = new Set([
+  UnitType.Warship,
+  UnitType.Destroyer,
+  UnitType.Cruiser,
+  UnitType.Battleship,
+  UnitType.Submarine,
+  UnitType.Minelayer,
+  UnitType.Carrier,
+  UnitType.Fighter,
+  UnitType.Bomber,
+  UnitType.AttackHelicopter,
+  UnitType.TransportShip,
+  UnitType.TradeShip,
 ]);
 
 export class UnitLayer implements Layer {
@@ -69,6 +84,12 @@ export class UnitLayer implements Layer {
   // Configuration for unit selection
   private readonly WARSHIP_SELECTION_RADIUS = 10; // Radius in game cells for warship selection hit zone
 
+  // Fluid movement interpolation state
+  private unitPrevPositions = new Map<number, { x: number; y: number }>();
+  private unitAngles = new Map<number, number>();
+  private lastTickAt = 0;
+  private avgTickDuration = 100;
+
   constructor(
     private game: GameView,
     private eventBus: EventBus,
@@ -83,6 +104,26 @@ export class UnitLayer implements Layer {
   }
 
   tick() {
+    // Snapshot positions before processing so we can interpolate from old→new
+    const now = performance.now();
+    if (this.lastTickAt > 0) {
+      this.avgTickDuration =
+        this.avgTickDuration * 0.85 + (now - this.lastTickAt) * 0.15;
+    }
+    this.lastTickAt = now;
+
+    for (const unit of this.game.units()) {
+      if (!FLUID_TYPES.has(unit.type())) continue;
+      if (!unit.isActive()) continue;
+      const cx = this.game.x(unit.tile());
+      const cy = this.game.y(unit.tile());
+      const prev = this.unitPrevPositions.get(unit.id());
+      if (prev !== undefined && (cx !== prev.x || cy !== prev.y)) {
+        this.unitAngles.set(unit.id(), Math.atan2(cy - prev.y, cx - prev.x));
+      }
+      this.unitPrevPositions.set(unit.id(), { x: cx, y: cy });
+    }
+
     const updatedUnitIds =
       this.game
         .updatesSinceLastTick()
@@ -258,6 +299,103 @@ export class UnitLayer implements Layer {
       this.game.width(),
       this.game.height(),
     );
+
+    // Draw fluid units at interpolated positions
+    const dt = performance.now() - this.lastTickAt;
+    const lerpT = Math.min(1.0, dt / Math.max(this.avgTickDuration, 50));
+    const ox = -this.game.width() / 2;
+    const oy = -this.game.height() / 2;
+
+    for (const unit of this.game.units()) {
+      if (!FLUID_TYPES.has(unit.type())) continue;
+      if (!unit.isActive()) continue;
+      if (!isSpriteReady(unit)) continue;
+
+      const cx = this.game.x(unit.tile());
+      const cy = this.game.y(unit.tile());
+      const prev = this.unitPrevPositions.get(unit.id()) ?? { x: cx, y: cy };
+      const ix = ox + prev.x + (cx - prev.x) * lerpT;
+      const iy = oy + prev.y + (cy - prev.y) * lerpT;
+      const angle = this.unitAngles.get(unit.id()) ?? 0;
+
+      this.drawFluidSprite(context, unit, ix, iy, angle);
+    }
+  }
+
+  private drawFluidSprite(
+    context: CanvasRenderingContext2D,
+    unit: UnitView,
+    ix: number,
+    iy: number,
+    angle: number,
+  ): void {
+    let alternateViewColor: Colord | null = null;
+    if (this.alternateView) {
+      const rel = this.relationship(unit);
+      switch (rel) {
+        case Relationship.Self:
+          alternateViewColor = this.theme.selfColor();
+          break;
+        case Relationship.Ally:
+          alternateViewColor = this.theme.allyColor();
+          break;
+        case Relationship.Enemy:
+          alternateViewColor = this.theme.enemyColor();
+          break;
+      }
+    }
+
+    let customTerritoryColor: Colord | undefined;
+    if (unit.type() === UnitType.Warship && unit.targetUnitId() !== undefined) {
+      customTerritoryColor = colord("rgb(200,0,0)");
+    }
+
+    const sprite = getColoredSprite(
+      unit,
+      this.theme,
+      alternateViewColor ?? customTerritoryColor,
+      alternateViewColor ?? undefined,
+    );
+
+    const isPlate = SPRITE_BASE_PLATE_TYPES.has(unit.type());
+    const drawSize = isPlate ? SPRITE_WORLD_SIZE : sprite.width;
+
+    const targetable = unit.targetable();
+    context.save();
+    if (!targetable) context.globalAlpha = 0.5;
+
+    if (isPlate) {
+      const plateColor =
+        alternateViewColor ??
+        customTerritoryColor ??
+        unit.owner().territoryColor();
+      context.beginPath();
+      context.arc(ix, iy, SPRITE_PLATE_RADIUS, 0, Math.PI * 2);
+      context.fillStyle = plateColor.alpha(0.75).toRgbString();
+      context.fill();
+    }
+
+    // Rotate sprite toward movement direction
+    context.translate(ix, iy);
+    context.rotate(angle);
+    context.drawImage(sprite, -drawSize / 2, -drawSize / 2, drawSize, drawSize);
+    context.restore();
+
+    // HP-critical red tint for own units
+    if (unit.hasHealth() && unit.owner() === this.game.myPlayer() && isPlate) {
+      const maxHealth = Number(
+        this.game.config().unitInfo(unit.type()).maxHealth ?? 0,
+      );
+      if (maxHealth > 0 && unit.health() / maxHealth <= 0.3) {
+        context.save();
+        context.globalAlpha = 0.35;
+        context.fillStyle = "rgb(239,68,68)";
+        context.beginPath();
+        context.arc(ix, iy, SPRITE_PLATE_RADIUS, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      }
+    }
   }
 
   onAlternativeViewEvent(event: AlternateViewEvent) {
@@ -347,7 +485,10 @@ export class UnitLayer implements Layer {
   ): { x: number; y: number; w: number; h: number }[] {
     const bounds: { x: number; y: number; w: number; h: number }[] = [];
     unitViews
-      .filter((unitView) => isSpriteReady(unitView))
+      .filter(
+        (unitView) =>
+          isSpriteReady(unitView) && !FLUID_TYPES.has(unitView.type()),
+      )
       .forEach((unitView) => {
         const half = this.unitDrawHalfSize(unitView);
         const clearsize = half * 2;
@@ -406,7 +547,11 @@ export class UnitLayer implements Layer {
 
     switch (unit.type()) {
       case UnitType.TransportShip:
-        this.handleBoatEvent(unit);
+        // Trail still drawn to static canvas; sprite drawn per-frame in renderLayer
+        this.handleBoatTrailOnly(unit);
+        break;
+      case UnitType.TradeShip:
+        // Per-frame sprite only — no trail
         break;
       case UnitType.Warship:
       case UnitType.Destroyer:
@@ -415,11 +560,10 @@ export class UnitLayer implements Layer {
       case UnitType.Submarine:
       case UnitType.Minelayer:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.Carrier:
-        this.handleWarShipEvent(unit);
+        // Sprite drawn per-frame in renderLayer — nothing to do on static canvas
         break;
       case UnitType.Mine:
         this.handleMineEvent(unit);
@@ -429,9 +573,6 @@ export class UnitLayer implements Layer {
         break;
       case UnitType.SAMMissile:
         this.handleMissileEvent(unit);
-        break;
-      case UnitType.TradeShip:
-        this.handleTradeShipEvent(unit);
         break;
       case UnitType.Train:
         this.handleTrainEvent(unit);
@@ -639,6 +780,22 @@ export class UnitLayer implements Layer {
     // Paint trail
     this.drawTrail(trail.slice(-1), unit.owner().territoryColor(), rel);
     this.drawSprite(unit);
+
+    if (!unit.isActive()) {
+      this.clearTrail(unit);
+    }
+  }
+
+  private handleBoatTrailOnly(unit: UnitView) {
+    const rel = this.relationship(unit);
+
+    if (!this.unitToTrail.has(unit)) {
+      this.unitToTrail.set(unit, []);
+    }
+    const trail = this.unitToTrail.get(unit) ?? [];
+    trail.push(unit.lastTile());
+
+    this.drawTrail(trail.slice(-1), unit.owner().territoryColor(), rel);
 
     if (!unit.isActive()) {
       this.clearTrail(unit);

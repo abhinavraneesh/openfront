@@ -39,27 +39,30 @@ describe("Combat multiplier table", () => {
   it("gives cruisers 2x vs air units (AA role)", () => {
     for (const air of [
       UnitType.Fighter,
-      UnitType.TacticalBomber,
-      UnitType.StrategicBomber,
+      UnitType.Bomber,
       UnitType.AttackHelicopter,
     ]) {
       expect(config.combatMultiplier(UnitType.Cruiser, air)).toBe(2.0);
     }
   });
 
-  it("gives air units 1.5x vs naval and land targets", () => {
+  it("gives fighters 1.5x vs naval and land targets", () => {
     expect(config.combatMultiplier(UnitType.Fighter, UnitType.Destroyer)).toBe(
       1.5,
     );
     expect(
-      config.combatMultiplier(UnitType.TacticalBomber, UnitType.City),
-    ).toBe(1.5);
-    expect(
-      config.combatMultiplier(UnitType.StrategicBomber, UnitType.Factory),
-    ).toBe(1.5);
-    expect(
       config.combatMultiplier(UnitType.AttackHelicopter, UnitType.DefensePost),
     ).toBe(1.5);
+  });
+
+  it("gives bombers 3.0x vs buildings and 2.5x vs naval", () => {
+    expect(config.combatMultiplier(UnitType.Bomber, UnitType.City)).toBe(3.0);
+    expect(config.combatMultiplier(UnitType.Bomber, UnitType.Factory)).toBe(
+      3.0,
+    );
+    expect(config.combatMultiplier(UnitType.Bomber, UnitType.Destroyer)).toBe(
+      2.5,
+    );
   });
 
   it("gives coastal batteries 1.5x vs naval ships", () => {

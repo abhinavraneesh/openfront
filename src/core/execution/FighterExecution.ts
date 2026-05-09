@@ -22,8 +22,7 @@ type Phase = "patrol" | "intercept" | "returning";
 
 const AIR_TYPES = [
   UnitType.Fighter,
-  UnitType.TacticalBomber,
-  UnitType.StrategicBomber,
+  UnitType.Bomber,
   UnitType.AttackHelicopter,
 ] as const;
 

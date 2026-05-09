@@ -83,8 +83,7 @@ export class UnitImpl implements Unit {
       case UnitType.Minelayer:
       case UnitType.Airbase:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.NavalYard:
       case UnitType.CoastalBattery:
@@ -258,8 +257,7 @@ export class UnitImpl implements Unit {
       case UnitType.Minelayer:
       case UnitType.Airbase:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.NavalYard:
       case UnitType.CoastalBattery:
@@ -371,8 +369,7 @@ export class UnitImpl implements Unit {
         case UnitType.Minelayer:
         case UnitType.Airbase:
         case UnitType.Fighter:
-        case UnitType.TacticalBomber:
-        case UnitType.StrategicBomber:
+        case UnitType.Bomber:
         case UnitType.AttackHelicopter:
         case UnitType.NavalYard:
         case UnitType.CoastalBattery:

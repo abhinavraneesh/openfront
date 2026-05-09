@@ -85,8 +85,7 @@ export class FxLayer implements Layer {
       case UnitType.Submarine:
       case UnitType.Minelayer:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.Carrier:
         this.onWarshipEvent(unit);
@@ -129,8 +128,7 @@ export class FxLayer implements Layer {
       case UnitType.Submarine:
       case UnitType.Minelayer:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.Carrier:
         if (unit.owner() === this.game.myPlayer()) {

@@ -1187,8 +1187,7 @@ export class GameImpl implements Game {
             u.type() === UnitType.Submarine ||
             u.type() === UnitType.Minelayer ||
             u.type() === UnitType.Fighter ||
-            u.type() === UnitType.TacticalBomber ||
-            u.type() === UnitType.StrategicBomber ||
+            u.type() === UnitType.Bomber ||
             u.type() === UnitType.AttackHelicopter ||
             u.type() === UnitType.Carrier ||
             u.type() === UnitType.TransportShip,

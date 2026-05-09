@@ -20,8 +20,7 @@ import { Layer } from "./Layer";
 
 const AIRCRAFT_TYPES: UnitType[] = [
   UnitType.Fighter,
-  UnitType.TacticalBomber,
-  UnitType.StrategicBomber,
+  UnitType.Bomber,
   UnitType.AttackHelicopter,
 ];
 
@@ -47,7 +46,7 @@ const MISSION_OPTIONS: Partial<Record<UnitType, MissionOption[]>> = {
     },
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
-  [UnitType.TacticalBomber]: [
+  [UnitType.Bomber]: [
     {
       label: "Strike target →",
       mission: UnitMission.STRIKE_TARGET,
@@ -56,26 +55,11 @@ const MISSION_OPTIONS: Partial<Record<UnitType, MissionOption[]>> = {
     },
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
-  [UnitType.StrategicBomber]: [
-    {
-      label: "Cluster strike →",
-      mission: UnitMission.CLUSTER_STRIKE,
-      needsTarget: true,
-      targetingLabel: "Select cluster strike target",
-    },
-    { label: "Stand down", mission: UnitMission.STAND_DOWN },
-  ],
   [UnitType.AttackHelicopter]: [
     {
       label: "CAS — select nation →",
       mission: UnitMission.CAS_NATION,
       needsNation: true,
-    },
-    {
-      label: "Attack tile →",
-      mission: UnitMission.ATTACK_TILE,
-      needsTarget: true,
-      targetingLabel: "Select attack tile",
     },
     { label: "Stand down", mission: UnitMission.STAND_DOWN },
   ],
@@ -91,10 +75,6 @@ function statusText(mission: UnitMission | undefined): string {
       return "Stood down";
     case UnitMission.STRIKE_TARGET:
       return "Strike mission";
-    case UnitMission.CLUSTER_STRIKE:
-      return "Cluster mission";
-    case UnitMission.ATTACK_TILE:
-      return "CAS attack";
     case UnitMission.CAS_NATION:
       return "CAS active";
     default:
@@ -106,10 +86,8 @@ function unitTypeLabel(type: UnitType): string {
   switch (type) {
     case UnitType.Fighter:
       return "Fighter";
-    case UnitType.TacticalBomber:
-      return "Tac. Bomber";
-    case UnitType.StrategicBomber:
-      return "Strat. Bomber";
+    case UnitType.Bomber:
+      return "Bomber";
     case UnitType.AttackHelicopter:
       return "Attack Heli";
     case UnitType.Airbase:
@@ -333,14 +311,8 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
       host && host.type() === UnitType.Airbase ? host.level() : 1;
     const maxFuel = baseMaxFuel * hostLevel;
     const moveSpeed = info.moveSpeed ?? 1;
-    if (unit.type() === UnitType.Fighter) {
-      // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
-      // Max ticks outbound: (maxFuel - 8) / 3
-      return Math.floor((maxFuel - 8) / 3) * moveSpeed;
-    }
-    // Bombers: shouldReturnHome: fuel <= ceil(dist/speed) + 5
-    // Max ticks outbound: (maxFuel - 5) / 2
-    return Math.floor((maxFuel - 5) / 2) * moveSpeed;
+    // Fighter shouldReturnHome: fuel < ceil(dist/speed)*2 + 8
+    return Math.floor((maxFuel - 8) / 3) * moveSpeed;
   }
 
   /**

@@ -43,8 +43,7 @@ const submarineIcon = assetUrl("images/SubmarineIconWhite.svg");
 const minelayerIcon = assetUrl("images/MinelayerIconWhite.svg");
 const airbaseIcon = assetUrl("images/AirbaseIconWhite.svg");
 const fighterIcon = assetUrl("images/FighterIconWhite.svg");
-const tacticalBomberIcon = assetUrl("images/TacticalBomberIconWhite.svg");
-const strategicBomberIcon = assetUrl("images/StrategicBomberIconWhite.svg");
+const bomberIcon = assetUrl("images/BomberIconWhite.svg");
 const navalYardIcon = assetUrl("images/NavalYardIconWhite.svg");
 const coastalBatteryIcon = assetUrl("images/CoastalBatteryIconWhite.svg");
 const carrierIcon = assetUrl("images/CarrierIconWhite.svg");
@@ -174,17 +173,10 @@ export const buildTable: BuildItemDisplay[][] = [
       countable: true,
     },
     {
-      unitType: UnitType.TacticalBomber,
-      icon: tacticalBomberIcon,
-      description: "build_menu.desc.tactical_bomber",
-      key: "unit_type.tactical_bomber",
-      countable: true,
-    },
-    {
-      unitType: UnitType.StrategicBomber,
-      icon: strategicBomberIcon,
-      description: "build_menu.desc.strategic_bomber",
-      key: "unit_type.strategic_bomber",
+      unitType: UnitType.Bomber,
+      icon: bomberIcon,
+      description: "build_menu.desc.bomber",
+      key: "unit_type.bomber",
       countable: true,
     },
   ],
