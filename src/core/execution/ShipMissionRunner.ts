@@ -20,27 +20,6 @@ const SHIP_LOOKUP_TYPES: UnitType[] = [
   UnitType.TradeShip,
 ];
 
-// Targetable tile occupants for BOMBARD_COAST.
-const BOMBARD_TARGET_TYPES: UnitType[] = [
-  UnitType.City,
-  UnitType.Port,
-  UnitType.MissileSilo,
-  UnitType.SAMLauncher,
-  UnitType.DefensePost,
-  UnitType.Factory,
-  UnitType.Airbase,
-  UnitType.CoastalBattery,
-  UnitType.NavalYard,
-  UnitType.Destroyer,
-  UnitType.Cruiser,
-  UnitType.Battleship,
-  UnitType.Submarine,
-  UnitType.Carrier,
-  UnitType.Minelayer,
-  UnitType.Warship,
-  UnitType.TransportShip,
-];
-
 export function findUnitById(mg: Game, id: number): Unit | undefined {
   for (const u of mg.units(...SHIP_LOOKUP_TYPES)) {
     if (u.id() === id) return u;
@@ -53,8 +32,6 @@ export interface MissionRunnerStats {
   baseDamage: number;
   attackRate: number;
   range: number;
-  // Separate range for BOMBARD_COAST. Defaults to range if omitted.
-  bombardRange?: number;
 }
 
 /**
@@ -90,8 +67,6 @@ export class ShipMissionRunner {
         return this.runHoldPosition();
       case UnitMission.PATROL_AREA:
         return this.runPatrolArea();
-      case UnitMission.BOMBARD_COAST:
-        return this.runBombardCoast();
       case UnitMission.ESCORT_UNIT:
         return this.runEscortUnit();
       case UnitMission.ATTACK_SHIP:
@@ -202,56 +177,6 @@ export class ShipMissionRunner {
       this.stepToward(target);
     }
     return "movement";
-  }
-
-  private runBombardCoast(): MissionResult {
-    const target = this.ship.missionTargetTile();
-    if (target === undefined) {
-      this.clearMission();
-      return "auto";
-    }
-    const bombRange = this.stats.bombardRange ?? this.stats.range;
-    const dist2 = this.mg.euclideanDistSquared(this.ship.tile(), target);
-    const inRange = dist2 <= bombRange * bombRange;
-    if (!inRange) {
-      this.stepToward(target);
-      return "movement";
-    }
-    // In range — hold position and bombard every 3 ticks.
-    const BOMBARD_RATE = 3;
-    if (this.mg.ticks() - this.lastAttack >= BOMBARD_RATE) {
-      this.lastAttack = this.mg.ticks();
-      const owner = this.ship.owner();
-      const candidates = this.mg.nearbyUnits(target, 4, BOMBARD_TARGET_TYPES);
-      let victim: Unit | undefined;
-      let bestDist = Infinity;
-      for (const { unit, distSquared } of candidates) {
-        if (unit.owner() === owner) continue;
-        if (!unit.isActive()) continue;
-        if (!owner.canAttackPlayer(unit.owner(), true)) continue;
-        // Only hit structures/ships on shoreline tiles.
-        if (!this.mg.isShore(unit.tile())) continue;
-        if (distSquared < bestDist) {
-          victim = unit;
-          bestDist = distSquared;
-        }
-      }
-      if (victim) {
-        const multiplier = this.mg
-          .config()
-          .combatMultiplier(this.stats.shipType, victim.type());
-        this.mg.addExecution(
-          new NavalShellExecution(
-            this.ship.tile(),
-            owner,
-            this.ship,
-            victim,
-            Math.round(this.stats.baseDamage * multiplier),
-          ),
-        );
-      }
-    }
-    return "full";
   }
 
   private runEscortUnit(): MissionResult {

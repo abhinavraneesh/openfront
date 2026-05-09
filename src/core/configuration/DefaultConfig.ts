@@ -493,18 +493,18 @@ export class DefaultConfig implements Config {
             (numUnits: number) => Math.min(3_000_000, (numUnits + 1) * 750_000),
             UnitType.Cruiser,
           ),
-          maxHealth: 2000,
+          maxHealth: 2500,
           armor: 0.7,
-          damage: 375,
-          attackRate: 8,
+          damage: 550,
+          attackRate: 6,
           range: 110,
           constructionDuration: this.instantBuild() ? 0 : 500,
         };
         break;
       case UnitType.Battleship:
         info = {
-          cost: this.costWrapper(() => 2_000_000, UnitType.Battleship),
-          maxHealth: 5000,
+          cost: this.costWrapper(() => 1_500_000, UnitType.Battleship),
+          maxHealth: 6000,
           armor: 0.45,
           damage: 1000,
           attackRate: 15,

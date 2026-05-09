@@ -74,7 +74,6 @@ export class BattleshipExecution implements Execution {
           baseDamage: Number(info.damage ?? 400),
           attackRate: info.attackRate ?? 25,
           range: info.range ?? 150,
-          bombardRange: 7,
         },
       );
     }

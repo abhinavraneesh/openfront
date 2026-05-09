@@ -109,8 +109,6 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
   @state() private _hidden = true;
   @state() private _selectedBuildType: UnitType = UnitType.Fighter;
   @state() private _tickCounter = 0;
-  @state() private _nationPickUnitId: number | null = null;
-  @state() private _nationPickMission: UnitMission | null = null;
   // When a tile-picking flow is in progress we suppress the next outside-click
   // hide so the panel stays open after the targeting click commits.
   private _targetingActive = false;
@@ -230,8 +228,7 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     const opt = options.find((o) => o.mission === value);
     if (!opt) return;
     if (opt.needsNation) {
-      this._nationPickUnitId = unit.id();
-      this._nationPickMission = opt.mission;
+      this.startCasNationTargeting(unit);
       return;
     }
     if (opt.needsTarget) {
@@ -241,6 +238,32 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
       this._confirmedTargets.delete(unit.id());
       this.eventBus.emit(new SetUnitMissionIntentEvent(unit.id(), opt.mission));
     }
+  }
+
+  private startCasNationTargeting(unit: UnitView) {
+    const unitId = unit.id();
+    const me = this.game.myPlayer();
+    if (!me) return;
+    this.eventBus.emit(
+      new StartTargetingModeEvent(
+        "Click enemy territory to assign CAS target nation",
+        (tile: TileRef) => {
+          const owner = this.game.owner(tile);
+          if (!owner.isPlayer()) return;
+          if (owner.smallID() === me.smallID()) return;
+          this.eventBus.emit(
+            new SetUnitMissionIntentEvent(
+              unitId,
+              UnitMission.CAS_NATION,
+              undefined,
+              owner.smallID(),
+            ),
+          );
+        },
+        undefined,
+        unit.tile(),
+      ),
+    );
   }
 
   /**
@@ -386,21 +409,6 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
     return true;
   }
 
-  private onNationSelect(smallID: number) {
-    if (this._nationPickUnitId === null || this._nationPickMission === null)
-      return;
-    this.eventBus.emit(
-      new SetUnitMissionIntentEvent(
-        this._nationPickUnitId,
-        this._nationPickMission,
-        undefined,
-        smallID,
-      ),
-    );
-    this._nationPickUnitId = null;
-    this._nationPickMission = null;
-  }
-
   private upgradeAirbase() {
     const host = this.host();
     if (!host || host.type() !== UnitType.Airbase) return;
@@ -428,20 +436,6 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
         new SetUnitMissionIntentEvent(u.id(), UnitMission.INTERCEPT_HOME),
       );
     }
-  }
-
-  private enemyNations(): { smallID: number; name: string }[] {
-    const me = this.game.myPlayer();
-    if (!me) return [];
-    const myID = me.smallID();
-    const nations: { smallID: number; name: string }[] = [];
-    for (const p of this.game.players()) {
-      if (!p.isAlive()) continue;
-      if (p.smallID() === myID) continue;
-      nations.push({ smallID: p.smallID(), name: p.displayName() });
-    }
-    nations.sort((a, b) => a.name.localeCompare(b.name));
-    return nations;
   }
 
   static styles = css`
@@ -710,42 +704,6 @@ export class AirbaseMissionPanel extends LitElement implements Layer {
           </button>
           <button @click=${() => this.hide()}>Close</button>
         </div>
-        ${this._nationPickUnitId !== null ? this.renderNationPicker() : ""}
-      </div>
-    `;
-  }
-
-  private renderNationPicker() {
-    const nations = this.enemyNations();
-    return html`
-      <hr class="divider" />
-      <div class="section-label">Select nation to hunt</div>
-      ${nations.length === 0
-        ? html`<div class="empty">No visible enemy nations</div>`
-        : html`
-            <select
-              @change=${(e: Event) => {
-                const v = (e.target as HTMLSelectElement).value;
-                if (v) this.onNationSelect(Number(v));
-              }}
-            >
-              <option value="">Choose nation…</option>
-              ${nations.map(
-                (n) => html`
-                  <option value=${String(n.smallID)}>${n.name}</option>
-                `,
-              )}
-            </select>
-          `}
-      <div class="actions">
-        <button
-          @click=${() => {
-            this._nationPickUnitId = null;
-            this._nationPickMission = null;
-          }}
-        >
-          Cancel
-        </button>
       </div>
     `;
   }
