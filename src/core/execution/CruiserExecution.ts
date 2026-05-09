@@ -194,8 +194,7 @@ export class CruiserExecution implements Execution {
     const owner = this.cruiser.owner();
     const airUnits = this.mg.nearbyUnits(this.cruiser.tile()!, AA_RANGE, [
       UnitType.Fighter,
-      UnitType.TacticalBomber,
-      UnitType.StrategicBomber,
+      UnitType.Bomber,
       UnitType.AttackHelicopter,
     ]);
 

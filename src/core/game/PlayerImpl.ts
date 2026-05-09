@@ -1190,8 +1190,7 @@ export class PlayerImpl implements Player {
       case UnitType.CoastalBattery:
         return this.coastalStructureSpawn(targetTile);
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
         return this.aircraftSpawn(targetTile);
       default:

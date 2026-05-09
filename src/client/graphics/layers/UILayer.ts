@@ -72,8 +72,7 @@ export class UILayer implements Layer {
         this.selectedUnit.type() === UnitType.Submarine ||
         this.selectedUnit.type() === UnitType.Minelayer ||
         this.selectedUnit.type() === UnitType.Fighter ||
-        this.selectedUnit.type() === UnitType.TacticalBomber ||
-        this.selectedUnit.type() === UnitType.StrategicBomber ||
+        this.selectedUnit.type() === UnitType.Bomber ||
         this.selectedUnit.type() === UnitType.AttackHelicopter ||
         this.selectedUnit.type() === UnitType.Carrier)
     ) {
@@ -127,8 +126,7 @@ export class UILayer implements Layer {
       case UnitType.Submarine:
       case UnitType.Minelayer:
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
       case UnitType.AttackHelicopter:
       case UnitType.Carrier: {
         this.drawHealthBar(unit);
@@ -188,8 +186,7 @@ export class UILayer implements Layer {
           event.unit.type() === UnitType.Submarine ||
           event.unit.type() === UnitType.Minelayer ||
           event.unit.type() === UnitType.Fighter ||
-          event.unit.type() === UnitType.TacticalBomber ||
-          event.unit.type() === UnitType.StrategicBomber ||
+          event.unit.type() === UnitType.Bomber ||
           event.unit.type() === UnitType.AttackHelicopter ||
           event.unit.type() === UnitType.Carrier)
       ) {

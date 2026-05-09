@@ -87,7 +87,7 @@ export class ClusterBombExecution implements Execution {
       ) {
         const multiplier = this.mg
           .config()
-          .combatMultiplier(UnitType.StrategicBomber, unit.type());
+          .combatMultiplier(UnitType.Bomber, unit.type());
         unit.modifyHealth(
           -Math.round(this.damagePerWarhead * multiplier),
           this.owner,

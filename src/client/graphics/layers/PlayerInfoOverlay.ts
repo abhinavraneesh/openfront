@@ -168,8 +168,7 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
           UnitType.Submarine,
           UnitType.Minelayer,
           UnitType.Fighter,
-          UnitType.TacticalBomber,
-          UnitType.StrategicBomber,
+          UnitType.Bomber,
           UnitType.AttackHelicopter,
           UnitType.Carrier,
           UnitType.TradeShip,
@@ -520,8 +519,7 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
       case UnitType.Fighter:
       case UnitType.AttackHelicopter:
         return swordIcon;
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
         return explosionIcon;
       case UnitType.City:
         return cityIcon;
@@ -568,12 +566,8 @@ export class PlayerInfoOverlay extends LitElement implements Layer {
     const AIRCRAFT: Array<{ unitType: UnitType; label: string }> = [
       { unitType: UnitType.Fighter, label: translateText("unit_type.fighter") },
       {
-        unitType: UnitType.TacticalBomber,
-        label: translateText("unit_type.tactical_bomber"),
-      },
-      {
-        unitType: UnitType.StrategicBomber,
-        label: translateText("unit_type.strategic_bomber"),
+        unitType: UnitType.Bomber,
+        label: translateText("unit_type.bomber"),
       },
       {
         unitType: UnitType.AttackHelicopter,

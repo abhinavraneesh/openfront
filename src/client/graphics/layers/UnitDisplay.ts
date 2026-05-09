@@ -110,8 +110,7 @@ export class UnitDisplay extends LitElement implements Layer {
           (player?.units(UnitType.Port).length ?? 0) > 0
         );
       case UnitType.Fighter:
-      case UnitType.TacticalBomber:
-      case UnitType.StrategicBomber:
+      case UnitType.Bomber:
         return (
           this.cost(item) <= (player?.gold() ?? 0n) &&
           (player?.units(UnitType.Airbase).length ?? 0) > 0
@@ -352,8 +351,7 @@ export class UnitDisplay extends LitElement implements Layer {
                 this.eventBus?.emit(new ToggleStructureEvent([UnitType.Port]));
                 break;
               case UnitType.Fighter:
-              case UnitType.TacticalBomber:
-              case UnitType.StrategicBomber:
+              case UnitType.Bomber:
                 this.eventBus?.emit(
                   new ToggleStructureEvent([UnitType.Airbase]),
                 );

@@ -42,8 +42,7 @@ export const otherUnits = [
   "mnlr",
   "abas",
   "fgtr",
-  "tbmb",
-  "sbmb",
+  "bomb",
   "heli",
   "nyrd",
   "fdpt",
@@ -66,8 +65,7 @@ export type OtherUnitType =
   | UnitType.Minelayer
   | UnitType.Airbase
   | UnitType.Fighter
-  | UnitType.TacticalBomber
-  | UnitType.StrategicBomber
+  | UnitType.Bomber
   | UnitType.AttackHelicopter
   | UnitType.NavalYard
   | UnitType.CoastalBattery
@@ -88,8 +86,7 @@ export const unitTypeToOtherUnit = {
   [UnitType.Minelayer]: "mnlr",
   [UnitType.Airbase]: "abas",
   [UnitType.Fighter]: "fgtr",
-  [UnitType.TacticalBomber]: "tbmb",
-  [UnitType.StrategicBomber]: "sbmb",
+  [UnitType.Bomber]: "bomb",
   [UnitType.AttackHelicopter]: "heli",
   [UnitType.NavalYard]: "nyrd",
   [UnitType.CoastalBattery]: "cbat",

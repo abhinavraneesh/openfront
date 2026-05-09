@@ -155,8 +155,7 @@ export class CarrierExecution implements Execution {
     if (otherCarriers + airbases > 0) return;
     const aircraft =
       owner.units(UnitType.Fighter).filter((u) => u.isActive()).length +
-      owner.units(UnitType.TacticalBomber).filter((u) => u.isActive()).length +
-      owner.units(UnitType.StrategicBomber).filter((u) => u.isActive()).length +
+      owner.units(UnitType.Bomber).filter((u) => u.isActive()).length +
       owner.units(UnitType.AttackHelicopter).filter((u) => u.isActive()).length;
     window.dispatchEvent(
       new CustomEvent("show-message", {
