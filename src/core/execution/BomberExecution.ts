@@ -41,6 +41,9 @@ export class BomberExecution implements Execution {
   private commandedStrikeTile: TileRef | null = null;
   private missionTargetTileSeen: TileRef | null = null;
   private idleTicks = 0;
+  private fuel = 0;
+  private maxFuel = 0;
+  private homeBaseLevel = 1;
 
   constructor(
     private input: (UnitParams<UnitType.Bomber> & OwnerComp) | Unit,
@@ -68,6 +71,9 @@ export class BomberExecution implements Execution {
       this.bomber.setMission(UnitMission.STAND_DOWN);
       this.phase = "idle";
     }
+    const baseFuel = mg.config().unitInfo(UnitType.Bomber).maxFuel ?? 60;
+    this.maxFuel = baseFuel * this.homeBaseLevel;
+    this.fuel = this.maxFuel;
   }
 
   tick(ticks: number): void {
@@ -85,16 +91,28 @@ export class BomberExecution implements Execution {
     const info = this.mg.config().unitInfo(UnitType.Bomber);
     const moveSpeed = info.moveSpeed ?? 3;
     const mission = this.bomber.mission();
+    const dockedAtBase =
+      this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1;
 
     if (mission === UnitMission.STAND_DOWN) {
       this.bomber.setTargetUnit(undefined);
       this.commandedStrikeTile = null;
       this.missionTargetTileSeen = null;
-      if (this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) > 1) {
-        this.moveStraightToward(this.homeBaseTile, moveSpeed);
-      } else {
+      if (dockedAtBase) {
+        this.fuel = Math.min(this.maxFuel, this.fuel + 5);
+        if (this.bomber.tile() !== this.homeBaseTile) {
+          this.bomber.move(this.homeBaseTile);
+        }
+        this.bomber.setPatrolTile(this.homeBaseTile);
         this.phase = "idle";
         this.idleTicks = 0;
+      } else {
+        this.fuel--;
+        if (this.fuel <= 0) {
+          this.bomber.delete();
+          return;
+        }
+        this.moveStraightToward(this.homeBaseTile, moveSpeed);
       }
       return;
     }
@@ -113,29 +131,47 @@ export class BomberExecution implements Execution {
 
     switch (this.phase) {
       case "idle":
-        if (
-          this.bomber.tile() !== this.homeBaseTile &&
-          this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1
-        ) {
-          this.bomber.move(this.homeBaseTile);
+        if (dockedAtBase) {
+          this.fuel = Math.min(this.maxFuel, this.fuel + 5);
+          if (this.bomber.tile() !== this.homeBaseTile) {
+            this.bomber.move(this.homeBaseTile);
+          }
           this.bomber.setPatrolTile(this.homeBaseTile);
         }
         this.idleTicks++;
         if (this.idleTicks > 30) {
           this.idleTicks = 0;
-          // auto-find nearby target
-          const autoTarget = this.findTargetNearTile(
-            this.bomber.tile(),
-            info.range ?? 80,
-          );
-          if (autoTarget) {
-            this.bomber.setTargetUnit(autoTarget);
-            this.phase = "outbound";
+          // Auto-find target only within safe operating range.
+          const safeRange = this.safeOneWayRange(moveSpeed);
+          if (safeRange > 0) {
+            const autoTarget = this.findTargetNearTile(
+              this.bomber.tile(),
+              safeRange,
+            );
+            if (autoTarget) {
+              this.bomber.setTargetUnit(autoTarget);
+              this.phase = "outbound";
+            }
           }
         }
         break;
 
       case "outbound":
+        this.fuel--;
+        if (this.fuel <= 0) {
+          this.bomber.delete();
+          return;
+        }
+        // Abort sortie if not enough fuel to return.
+        if (this.shouldReturnHome(moveSpeed)) {
+          this.bomber.setTargetUnit(undefined);
+          this.commandedStrikeTile = null;
+          this.missionTargetTileSeen = null;
+          this.bomber.setMission(UnitMission.STAND_DOWN);
+          this.bomber.setMissionTargetTile(undefined);
+          this.phase = "returning";
+          break;
+        }
         this.doOutbound(moveSpeed, info.damage ?? 800);
         break;
 
@@ -144,8 +180,14 @@ export class BomberExecution implements Execution {
         break;
 
       case "returning":
+        this.fuel--;
+        if (this.fuel <= 0) {
+          this.bomber.delete();
+          return;
+        }
         this.moveStraightToward(this.homeBaseTile, moveSpeed);
-        if (this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile) <= 1) {
+        if (dockedAtBase) {
+          this.fuel = this.maxFuel;
           this.bomber.modifyHealth(10);
           this.bomber.setPatrolTile(this.homeBaseTile);
           this.phase = "idle";
@@ -155,10 +197,21 @@ export class BomberExecution implements Execution {
     }
   }
 
+  private shouldReturnHome(moveSpeed: number): boolean {
+    const dist = this.mg.manhattanDist(this.bomber.tile(), this.homeBaseTile);
+    const ticksHome = Math.ceil(dist / moveSpeed);
+    return this.fuel < ticksHome * 2 + 8;
+  }
+
+  private safeOneWayRange(moveSpeed: number): number {
+    return Math.max(0, Math.floor((this.fuel - 8) / 2) * moveSpeed);
+  }
+
   private updateHomeBase(): boolean {
     const owner = this.bomber.owner();
     const here = this.bomber.tile();
     let best: TileRef | undefined;
+    let bestLevel = 1;
     let bestDist = Infinity;
 
     for (const u of owner.units(UnitType.Airbase)) {
@@ -166,6 +219,7 @@ export class BomberExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = u.level();
         bestDist = d;
       }
     }
@@ -179,12 +233,18 @@ export class BomberExecution implements Execution {
       const d = this.mg.euclideanDistSquared(here, u.tile());
       if (d < bestDist) {
         best = u.tile();
+        bestLevel = 1; // carriers are always level 1
         bestDist = d;
       }
     }
 
     if (best === undefined) return false;
     this.homeBaseTile = best;
+    if (bestLevel !== this.homeBaseLevel) {
+      const baseFuel = this.mg.config().unitInfo(UnitType.Bomber).maxFuel ?? 60;
+      this.homeBaseLevel = bestLevel;
+      this.maxFuel = baseFuel * bestLevel;
+    }
     return true;
   }
 

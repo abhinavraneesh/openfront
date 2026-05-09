@@ -574,6 +574,7 @@ export class DefaultConfig implements Config {
           damage: 800,
           range: 80,
           moveSpeed: 3,
+          maxFuel: 60,
           constructionDuration: this.instantBuild() ? 0 : 200,
         };
         break;
