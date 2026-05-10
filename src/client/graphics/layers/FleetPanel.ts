@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { EventBus } from "../../../core/EventBus";
 import { UnitMission, UnitType } from "../../../core/game/Game";
 import { TileRef } from "../../../core/game/GameMap";
-import { GameView, UnitView } from "../../../core/game/GameView";
+import { GameView, PlayerView, UnitView } from "../../../core/game/GameView";
 import { CloseViewEvent } from "../../InputHandler";
 import {
   SetUnitMissionIntentEvent,
@@ -145,6 +145,9 @@ export class FleetPanel extends LitElement implements Layer {
 
   @state() private _hidden = true;
   @state() private _tickCounter = 0;
+  private _casBorderCache = new Map<number, TileRef[]>(); // targetSmallID → border tiles
+  private _myBorderCacheForCAS: TileRef[] = [];
+  private _beingCASd = false;
 
   init() {
     this.eventBus.on(ShowFleetPanelEvent, () => this.toggle());
@@ -160,6 +163,7 @@ export class FleetPanel extends LitElement implements Layer {
   tick() {
     this._tickCounter++;
     if (!this._hidden) this.requestUpdate();
+    this.updateCASState();
   }
 
   renderLayer(context: CanvasRenderingContext2D) {
@@ -187,6 +191,101 @@ export class FleetPanel extends LitElement implements Layer {
 
     // Dashed lines from ships to their mission destinations.
     this.renderShipMissionLines(context);
+
+    // Pulsing territory tint for active CAS missions.
+    this.renderCASOverlay(context);
+  }
+
+  private updateCASState() {
+    if (!this.game) return;
+    const me = this.game.myPlayer();
+    if (!me) return;
+
+    // Collect active CAS target IDs from our own helicopters.
+    const activeTargetIds = new Set<number>();
+    for (const heli of me.units(UnitType.AttackHelicopter)) {
+      if (heli.mission() !== UnitMission.CAS_NATION) continue;
+      const tid = heli.missionTargetUnitId();
+      if (tid !== undefined) activeTargetIds.add(tid);
+    }
+
+    // Fetch border tiles for any new CAS targets; evict stale entries.
+    for (const id of this._casBorderCache.keys()) {
+      if (!activeTargetIds.has(id)) this._casBorderCache.delete(id);
+    }
+    for (const tid of activeTargetIds) {
+      if (this._casBorderCache.has(tid)) continue;
+      const target = this.game.playerBySmallID(tid) as PlayerView | undefined;
+      if (!target?.isPlayer()) continue;
+      target.borderTiles().then((result) => {
+        if (activeTargetIds.has(tid)) {
+          const tiles: TileRef[] = [];
+          for (const t of result.borderTiles) {
+            if (tiles.length >= 400) break;
+            tiles.push(t);
+          }
+          this._casBorderCache.set(tid, tiles);
+        }
+      });
+    }
+
+    // Check if we're being CAS'd.
+    let beingCASd = false;
+    for (const player of this.game.players()) {
+      if (!player.isPlayer() || player.smallID() === me.smallID()) continue;
+      for (const heli of player.units(UnitType.AttackHelicopter)) {
+        if (
+          heli.mission() === UnitMission.CAS_NATION &&
+          heli.missionTargetUnitId() === me.smallID()
+        ) {
+          beingCASd = true;
+          break;
+        }
+      }
+      if (beingCASd) break;
+    }
+
+    if (beingCASd && !this._beingCASd) {
+      // Fetch our border tiles once when CAS starts.
+      me.borderTiles().then((result) => {
+        const tiles: TileRef[] = [];
+        for (const t of result.borderTiles) {
+          if (tiles.length >= 400) break;
+          tiles.push(t);
+        }
+        this._myBorderCacheForCAS = tiles;
+      });
+    }
+    if (!beingCASd) this._myBorderCacheForCAS = [];
+    this._beingCASd = beingCASd;
+  }
+
+  private renderCASOverlay(context: CanvasRenderingContext2D) {
+    const hasCAS =
+      this._casBorderCache.size > 0 ||
+      (this._beingCASd && this._myBorderCacheForCAS.length > 0);
+    if (!hasCAS) return;
+
+    const pulse = (Math.sin(performance.now() / 300) + 1) / 2;
+    context.save();
+
+    // Outgoing CAS: target nation's border tiles — orange.
+    for (const tiles of this._casBorderCache.values()) {
+      context.fillStyle = `rgba(251,146,60,${0.10 + pulse * 0.12})`;
+      for (const tile of tiles) {
+        context.fillRect(this.game.x(tile), this.game.y(tile), 1, 1);
+      }
+    }
+
+    // Incoming CAS: our own border tiles — red.
+    if (this._beingCASd && this._myBorderCacheForCAS.length > 0) {
+      context.fillStyle = `rgba(239,68,68,${0.10 + pulse * 0.12})`;
+      for (const tile of this._myBorderCacheForCAS) {
+        context.fillRect(this.game.x(tile), this.game.y(tile), 1, 1);
+      }
+    }
+
+    context.restore();
   }
 
   /**

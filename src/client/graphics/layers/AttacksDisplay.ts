@@ -2,7 +2,7 @@ import { html, LitElement } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { assetUrl } from "../../../core/AssetUrls";
 import { EventBus } from "../../../core/EventBus";
-import { MessageType, PlayerType, UnitType } from "../../../core/game/Game";
+import { MessageType, PlayerType, UnitMission, UnitType } from "../../../core/game/Game";
 import {
   AttackUpdate,
   GameUpdateType,
@@ -13,6 +13,7 @@ import {
   CancelAttackIntentEvent,
   CancelBoatIntentEvent,
   SendAttackIntentEvent,
+  SetUnitMissionIntentEvent,
 } from "../../Transport";
 import { renderTroops, translateText } from "../../Utils";
 import { getColoredSprite } from "../SpriteLoader";
@@ -25,6 +26,7 @@ import {
 } from "./Leaderboard";
 const soldierIcon = assetUrl("images/SoldierIcon.svg");
 const swordIcon = assetUrl("images/SwordIcon.svg");
+const heliIcon = assetUrl("images/AttackHelicopterIconWhite.svg");
 
 @customElement("attacks-display")
 export class AttacksDisplay extends LitElement implements Layer {
@@ -41,6 +43,9 @@ export class AttacksDisplay extends LitElement implements Layer {
   @state() private outgoingLandAttacks: AttackUpdate[] = [];
   @state() private outgoingBoats: UnitView[] = [];
   @state() private incomingBoats: UnitView[] = [];
+  @state() private outgoingCAS: Array<{ heliId: number; targetName: string }> =
+    [];
+  @state() private incomingCAS: Array<{ attackerName: string }> = [];
 
   createRenderRoot() {
     return this;
@@ -106,6 +111,38 @@ export class AttacksDisplay extends LitElement implements Layer {
     this.outgoingBoats = myPlayer
       .units()
       .filter((u) => u.type() === UnitType.TransportShip);
+
+    // Outgoing CAS: own helis with CAS_NATION mission
+    this.outgoingCAS = myPlayer
+      .units(UnitType.AttackHelicopter)
+      .filter((h) => h.mission() === UnitMission.CAS_NATION)
+      .map((h) => {
+        const tid = h.missionTargetUnitId();
+        const targetName =
+          tid !== undefined
+            ? ((this.game.playerBySmallID(tid) as PlayerView)?.displayName() ??
+              "")
+            : "";
+        return { heliId: h.id(), targetName };
+      });
+
+    // Incoming CAS: enemy helis targeting this player
+    this.incomingCAS = [];
+    for (const player of this.game.players()) {
+      if (!player.isPlayer() || player.smallID() === myPlayer.smallID())
+        continue;
+      for (const heli of player.units(UnitType.AttackHelicopter)) {
+        if (
+          heli.mission() === UnitMission.CAS_NATION &&
+          heli.missionTargetUnitId() === myPlayer.smallID()
+        ) {
+          this.incomingCAS.push({
+            attackerName: (player as PlayerView).displayName(),
+          });
+          break; // one card per attacker is enough
+        }
+      }
+    }
 
     this.requestUpdate();
   }
@@ -392,6 +429,54 @@ export class AttacksDisplay extends LitElement implements Layer {
     );
   }
 
+  private renderOutgoingCAS() {
+    if (this.outgoingCAS.length === 0) return html``;
+    return this.outgoingCAS.map(
+      ({ heliId, targetName }) => html`
+        <div
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+        >
+          <img
+            src="${heliIcon}"
+            class="h-4 w-4 shrink-0"
+            style="filter: brightness(0) saturate(100%) invert(62%) sepia(80%) saturate(500%) hue-rotate(60deg) brightness(110%)"
+          />
+          <span class="text-orange-400 truncate flex-1 text-left ml-1">
+            CAS → ${targetName}
+          </span>
+          ${this.renderButton({
+            content: "❌",
+            onClick: () =>
+              this.eventBus.emit(
+                new SetUnitMissionIntentEvent(heliId, UnitMission.STAND_DOWN),
+              ),
+            className: "ml-auto text-left shrink-0",
+          })}
+        </div>
+      `,
+    );
+  }
+
+  private renderIncomingCAS() {
+    if (this.incomingCAS.length === 0) return html``;
+    return this.incomingCAS.map(
+      ({ attackerName }) => html`
+        <div
+          class="flex items-center gap-0.5 w-full bg-gray-800/92 backdrop-blur-sm sm:rounded-lg px-1.5 py-0.5 overflow-hidden"
+        >
+          <img
+            src="${heliIcon}"
+            class="h-4 w-4 shrink-0"
+            style="filter: brightness(0) saturate(100%) invert(27%) sepia(91%) saturate(4551%) hue-rotate(348deg) brightness(89%) contrast(97%)"
+          />
+          <span class="text-red-400 truncate flex-1 text-left ml-1">
+            CAS ↓ ${attackerName}
+          </span>
+        </div>
+      `,
+    );
+  }
+
   private renderIncomingBoats() {
     if (this.incomingBoats.length === 0) return html``;
 
@@ -428,7 +513,9 @@ export class AttacksDisplay extends LitElement implements Layer {
       this.outgoingLandAttacks.length > 0 ||
       this.outgoingBoats.length > 0 ||
       this.incomingAttacks.length > 0 ||
-      this.incomingBoats.length > 0;
+      this.incomingBoats.length > 0 ||
+      this.outgoingCAS.length > 0 ||
+      this.incomingCAS.length > 0;
 
     if (!hasAnything) {
       return html``;
@@ -440,7 +527,8 @@ export class AttacksDisplay extends LitElement implements Layer {
       >
         ${this.renderOutgoingAttacks()} ${this.renderOutgoingLandAttacks()}
         ${this.renderBoats()} ${this.renderIncomingAttacks()}
-        ${this.renderIncomingBoats()}
+        ${this.renderIncomingBoats()} ${this.renderOutgoingCAS()}
+        ${this.renderIncomingCAS()}
       </div>
     `;
   }
