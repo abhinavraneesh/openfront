@@ -49,13 +49,74 @@ export class UnitDisplay extends LitElement implements Layer {
   private _airbase = 0;
   private _coastalBattery = 0;
   private allDisabled = false;
-  private _hoveredUnit: PlayerBuildableUnitType | null = null;
-  private _hoverPos: { x: number; y: number } | null = null;
-  private _hoverStructureKey = "";
-  private _hoverDisplayHotkey = "";
+  private _tooltip: HTMLDivElement | null = null;
 
   createRenderRoot() {
     return this;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._tooltip?.remove();
+    this._tooltip = null;
+  }
+
+  private ensureTooltip(): HTMLDivElement {
+    if (!this._tooltip) {
+      const el = document.createElement("div");
+      el.className =
+        "fixed pointer-events-none text-gray-200 text-center text-xs bg-gray-800/90 rounded-sm p-2 shadow-lg";
+      el.style.cssText = "display:none;z-index:9999;width:max-content;max-width:220px";
+      document.body.appendChild(el);
+      this._tooltip = el;
+    }
+    return this._tooltip;
+  }
+
+  private showTooltip(
+    unitType: PlayerBuildableUnitType,
+    structureKey: string,
+    displayHotkey: string,
+    x: number,
+    y: number,
+  ): void {
+    const el = this.ensureTooltip();
+    const name = translateText("unit_type." + structureKey);
+    const desc = translateText("build_menu.desc." + structureKey);
+    const cost = renderNumber(this.cost(unitType));
+
+    const nameNode = document.createElement("div");
+    nameNode.style.cssText = "font-weight:700;font-size:0.875rem;margin-bottom:0.25rem";
+    nameNode.textContent = `${name} [${displayHotkey}]`;
+
+    const descNode = document.createElement("div");
+    descNode.style.cssText = "padding:0 0.5rem 0.25rem;color:#d1d5db";
+    descNode.textContent = desc;
+
+    const costRow = document.createElement("div");
+    costRow.style.cssText = "display:flex;align-items:center;justify-content:center;gap:0.25rem";
+
+    const coin = document.createElement("img");
+    coin.src = goldCoinIcon;
+    coin.width = 13;
+    coin.height = 13;
+
+    const costSpan = document.createElement("span");
+    costSpan.style.color = "#fde047";
+    costSpan.textContent = cost;
+
+    costRow.appendChild(coin);
+    costRow.appendChild(costSpan);
+
+    el.replaceChildren(nameNode, descNode, costRow);
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.transform = "translate(-50%,-100%) translateY(-8px)";
+    el.style.display = "";
+  }
+
+  private hideTooltip(): void {
+    if (this._tooltip) this._tooltip.style.display = "none";
   }
 
   init() {
@@ -157,30 +218,7 @@ export class UnitDisplay extends LitElement implements Layer {
       return null;
     }
 
-    const hovered = this._hoveredUnit;
-    const hoverPos = this._hoverPos;
     return html`
-      ${hovered && hoverPos
-        ? html`<div
-            class="fixed z-[200] pointer-events-none text-gray-200 text-center w-max text-xs bg-gray-800/90 backdrop-blur-xs rounded-sm p-2 shadow-lg"
-            style="left:${hoverPos.x}px;top:${hoverPos.y}px;transform:translate(-50%,-100%) translateY(-8px)"
-          >
-            <div class="font-bold text-sm mb-1">
-              ${translateText(
-                "unit_type." + this._hoverStructureKey,
-              )}${` [${this._hoverDisplayHotkey}]`}
-            </div>
-            <div class="px-2 pb-1 text-gray-300">
-              ${translateText("build_menu.desc." + this._hoverStructureKey)}
-            </div>
-            <div class="flex items-center justify-center gap-1">
-              <img src=${goldCoinIcon} width="13" height="13" />
-              <span class="text-yellow-300"
-                >${renderNumber(this.cost(hovered))}</span
-              >
-            </div>
-          </div>`
-        : null}
       <div class="border-t border-white/10 w-full">
         <div class="flex flex-nowrap justify-center gap-1 px-2 py-1.5 overflow-x-auto">
           ${this.renderUnitItem(
@@ -292,17 +330,11 @@ export class UnitDisplay extends LitElement implements Layer {
       <div
         class="flex flex-col items-center relative"
         @mouseenter=${(e: MouseEvent) => {
-          this._hoveredUnit = unitType;
-          this._hoverStructureKey = structureKey;
-          this._hoverDisplayHotkey = displayHotkey;
           const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          this._hoverPos = { x: rect.left + rect.width / 2, y: rect.top };
-          this.requestUpdate();
+          this.showTooltip(unitType, structureKey, displayHotkey, rect.left + rect.width / 2, rect.top);
         }}
         @mouseleave=${() => {
-          this._hoveredUnit = null;
-          this._hoverPos = null;
-          this.requestUpdate();
+          this.hideTooltip();
         }}
       >
         <div
