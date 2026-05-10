@@ -1341,20 +1341,42 @@ export class PlayerImpl implements Player {
     return hasYard ? spawnTile : false;
   }
 
-  // NavalYard must be placed on land adjacent to a Port tile.
+  // NavalYard must be placed on owned shoreline land near a friendly Port.
+  // BFS outward from the clicked tile to snap to the nearest valid shore tile,
+  // so the player doesn't need to click with pixel precision.
   navalYardSpawn(
     targetTile: TileRef,
     validTiles: TileRef[] | null = null,
   ): TileRef | false {
-    if (!this.mg.isLand(targetTile)) return false;
-    if (!this.mg.isShoreline(targetTile)) return false;
-    // Check that a friendly Port exists within 30 tiles
-    const ports = this.mg.nearbyUnits(targetTile, 30, [UnitType.Port]);
-    const hasPort = ports.some(
-      ({ unit }) => unit.owner() === this && unit.isActive(),
+    const radius = this.mg.config().radiusPortSpawn();
+    const validTileSet = new Set(
+      validTiles ?? this.validStructureSpawnTiles(targetTile),
     );
-    if (!hasPort) return false;
-    return this.landBasedStructureSpawn(targetTile, validTiles);
+    const candidates = Array.from(
+      this.mg.bfs(targetTile, manhattanDistFN(targetTile, radius)),
+    )
+      .filter(
+        (t) =>
+          this.mg.owner(t) === this &&
+          this.mg.isLand(t) &&
+          this.mg.isShoreline(t) &&
+          validTileSet.has(t),
+      )
+      .sort(
+        (a, b) =>
+          this.mg.manhattanDist(a, targetTile) -
+          this.mg.manhattanDist(b, targetTile),
+      );
+
+    for (const t of candidates) {
+      // Require a friendly Port within 30 tiles of the candidate shore tile
+      const ports = this.mg.nearbyUnits(t, 30, [UnitType.Port]);
+      const hasPort = ports.some(
+        ({ unit }) => unit.owner() === this && unit.isActive(),
+      );
+      if (hasPort) return t;
+    }
+    return false;
   }
 
   // CoastalBattery must be placed on a shoreline land tile.
