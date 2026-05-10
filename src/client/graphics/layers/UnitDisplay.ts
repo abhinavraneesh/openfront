@@ -182,7 +182,7 @@ export class UnitDisplay extends LitElement implements Layer {
           </div>`
         : null}
       <div class="border-t border-white/10 w-full">
-        <div class="flex flex-nowrap justify-center gap-2 px-3 py-1.5 overflow-x-auto">
+        <div class="flex flex-nowrap justify-center gap-1 px-2 py-1.5 overflow-x-auto">
           ${this.renderUnitItem(
             cityIcon,
             this._cities,
@@ -306,11 +306,9 @@ export class UnitDisplay extends LitElement implements Layer {
         }}
       >
         <div
-          class="${this.canBuild(unitType)
-            ? ""
-            : "opacity-40"} border border-slate-500 rounded px-2 py-1 flex items-center gap-1 cursor-pointer
-             ${selected ? "hover:bg-gray-400/10" : "hover:bg-gray-800"}
-             text-white ${selected ? "bg-slate-400/20" : ""}"
+          class="relative border border-slate-600 rounded cursor-pointer text-white
+            ${this.canBuild(unitType) ? "" : "opacity-40"}
+            ${selected ? "bg-slate-400/20 hover:bg-gray-400/10" : "hover:bg-gray-800"}"
           @click=${() => {
             if (selected) {
               this.uiState.ghostStructure = null;
@@ -366,18 +364,17 @@ export class UnitDisplay extends LitElement implements Layer {
           @mouseleave=${() =>
             this.eventBus?.emit(new ToggleStructureEvent(null))}
         >
-          <div class="flex flex-col items-center gap-0.5">
-            <div class="text-[10px] text-gray-400 leading-none">
-              ${displayHotkey}
-            </div>
-            <div class="flex items-center gap-1">
-              <img src=${icon} alt=${structureKey} class="align-middle size-6" />
-              ${number !== null
-                ? html`<span class="text-sm font-medium"
+          <span
+            class="absolute top-0.5 left-1 text-[9px] text-gray-400 leading-none select-none"
+            >${displayHotkey}</span
+          >
+          <div class="flex items-center gap-0.5 px-1.5 pb-1 pt-3.5">
+            <img src=${icon} alt=${structureKey} class="size-5" />
+            ${number !== null
+              ? html`<span class="text-xs leading-none"
                     >${renderNumber(number)}</span
                   >`
-                : null}
-            </div>
+              : null}
           </div>
         </div>
       </div>
